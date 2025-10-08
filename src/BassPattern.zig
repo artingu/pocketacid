@@ -9,6 +9,10 @@ pub const off: u4 = 0xf;
 len: Size = 16,
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 
+pub inline fn length(self: *const @This()) Size {
+    return @atomicLoad(Size, &self.len, .seq_cst);
+}
+
 pub const Step = packed struct(u8) {
     pitch: u4 = off,
     octup: bool = false,
@@ -24,11 +28,12 @@ pub const Step = packed struct(u8) {
         return @atomicLoad(Step, self, .seq_cst);
     }
 
-    pub inline fn any(self: *const Step) bool {
-        return self.copy() != Step{};
+    pub inline fn active(self: *const Step) bool {
+        const s = self.copy();
+        return s.pitch != off;
+    }
+
+    pub inline fn delete(self: *Step) void {
+        self.assume(.{});
     }
 };
-
-pub inline fn length(self: *const @This()) Size {
-    return @atomicLoad(Size, &self.len, .seq_cst);
-}
