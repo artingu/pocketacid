@@ -13,6 +13,18 @@ pub inline fn length(self: *const @This()) Size {
     return @atomicLoad(Size, &self.len, .seq_cst);
 }
 
+pub fn incLength(self: *@This()) void {
+    const len = @atomicLoad(Size, &self.len, .seq_cst);
+    const new = @min(maxlen, len + 1);
+    @atomicStore(Size, &self.len, new, .seq_cst);
+}
+
+pub fn decLength(self: *@This()) void {
+    const len = @atomicLoad(Size, &self.len, .seq_cst);
+    const new: Size = if (len <= 1) 1 else len - 1;
+    @atomicStore(Size, &self.len, new, .seq_cst);
+}
+
 pub const Step = packed struct(u8) {
     pitch: u4 = off,
     octup: bool = false,
