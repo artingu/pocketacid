@@ -38,13 +38,11 @@ pub fn main() !void {
     var last_t = sdl.getPerformanceCounter();
     const perf_freq: f64 = @floatFromInt(sdl.getPerformanceFrequency());
 
-    var bass_patterns: [255]BassPattern = [1]BassPattern{.{}} ** 255;
-
     var held = ButtonState{};
     var bh = ButtonHandler{};
     var cm = ControllerManager{};
     // var drum_interface = DrumInterface{ .pattern = &state.pattern };
-    var bass_interface = BassInterface{ .bank = &bass_patterns };
+    var bass_interface = BassInterface{ .bank = &state.bass_patterns };
 
     cm.openAll();
     defer cm.closeAll();

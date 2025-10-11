@@ -48,4 +48,13 @@ pub const Step = packed struct(u8) {
     pub inline fn delete(self: *Step) void {
         self.assume(.{});
     }
+
+    pub fn midi(self: Step, base: u7) ?u7 {
+        if (self.pitch == off) return null;
+        var result = base;
+        result +|= self.pitch;
+        if (self.octup) result +|= 12;
+        if (self.octdown) result -|= 12;
+        return result;
+    }
 };

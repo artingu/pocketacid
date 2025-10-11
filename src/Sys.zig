@@ -1,3 +1,4 @@
+const MidiBuf = @import("MidiBuf.zig");
 const std = @import("std");
 const sdl = @import("sdl.zig");
 const texture = @import("texture.zig");
@@ -7,9 +8,9 @@ const fontdata = @embedFile("assets/font.png");
 const SoundEngine = @import("SoundEngine.zig");
 const Self = @This();
 
-var phase: f32 = 0;
-
-pub var sound_engine = SoundEngine{};
+var midibuf_buf: [256]u8 = undefined;
+var midibuf = MidiBuf{ .buf = &midibuf_buf };
+pub var sound_engine = SoundEngine{ .midibuf = &midibuf };
 
 var spec: sdl.AudioSpec = undefined;
 fn audiocb(data: ?*anyopaque, stream: [*c]u8, byte_len: c_int) callconv(.C) void {
@@ -27,10 +28,6 @@ fn audiocb(data: ?*anyopaque, stream: [*c]u8, byte_len: c_int) callconv(.C) void
     for (buf) |*f| {
         f.left = sound_engine.next(srate);
         f.right = f.left;
-        // f.left = @sin(440 * phase);
-        // f.right = @cos(440 * phase);
-        // phase += 2 * std.math.pi / @as(f32, @floatFromInt(spec.freq));
-        // if (phase >= 2 * std.math.pi) phase -= 2 * std.math.pi;
     }
 }
 
