@@ -8,7 +8,9 @@ const fontdata = @embedFile("assets/font.png");
 const SoundEngine = @import("SoundEngine.zig");
 const Self = @This();
 
-var midibuf_buf: [256]u8 = undefined;
+const midi = @import("midi.zig");
+
+var midibuf_buf: [256]midi.Event = undefined;
 var midibuf = MidiBuf{ .buf = &midibuf_buf };
 pub var sound_engine = SoundEngine{ .midibuf = &midibuf };
 

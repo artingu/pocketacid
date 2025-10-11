@@ -2,6 +2,7 @@ const std = @import("std");
 const BassPattern = @import("BassPattern.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const BassSeq = @This();
+const midi = @import("midi.zig");
 
 pattern: *BassPattern,
 nextpattern: ?*BassPattern = null,
@@ -23,12 +24,11 @@ fn noteOn(self: *BassSeq, pitch: u7, velocity: u7) void {
     const n: u8 = self.playing_note orelse 0xff;
 
     if (n != pitch) {
-        std.debug.print("Note on: {} {}\n", .{ pitch, velocity });
-        if (self.midibuf) |mb| {
-            mb.feedByte(@as(u8, 0x80) | self.channel);
-            mb.feedByte(pitch);
-            mb.feedByte(velocity);
-        }
+        if (self.midibuf) |mb| mb.feed(midi.Event{ .note_on = .{
+            .channel = self.channel,
+            .pitch = pitch,
+            .velocity = velocity,
+        } });
         self.maybeNoteOff();
     }
 
@@ -36,15 +36,14 @@ fn noteOn(self: *BassSeq, pitch: u7, velocity: u7) void {
 }
 
 fn maybeNoteOff(self: *BassSeq) void {
-    if (self.playing_note) |p| {
+    if (self.playing_note) |pitch| {
         self.playing_note = null;
 
-        std.debug.print("Note off: {}\n", .{p});
-        if (self.midibuf) |mb| {
-            mb.feedByte(@as(u8, 0x80) | self.channel);
-            mb.feedByte(p);
-            mb.feedByte(0);
-        }
+        if (self.midibuf) |mb| mb.feed(midi.Event{ .note_on = .{
+            .channel = self.channel,
+            .pitch = pitch,
+            .velocity = 0,
+        } });
     }
 }
 pub fn tick(self: *BassSeq) void {

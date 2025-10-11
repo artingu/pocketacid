@@ -1,4 +1,4 @@
-const DrumSeq = @import("DrumSeq.zig");
+const PDBass = @import("PDBass.zig");
 const BassSeq = @import("BassSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
 
@@ -9,7 +9,8 @@ midibuf: *MidiBuf,
 phase: f32 = 0,
 bpm: f32 = 120,
 
-bs: BassSeq = .{ .pattern = &@import("state.zig").bass_patterns[0], .channel = 1 },
+bs: BassSeq = .{ .pattern = &@import("state.zig").bass_patterns[0], .channel = 0 },
+pdbass: PDBass = .{},
 
 running: bool = false,
 toggle_running: bool = false,
@@ -26,6 +27,10 @@ pub fn everyBuffer(self: *@This()) void {
             self.bs.start();
         }
     }
+
+    for (self.midibuf.emit()) |event| {
+        self.pdbass.handleMidiEvent(event);
+    }
 }
 
 pub fn next(self: *@This(), srate: f32) f32 {
@@ -36,7 +41,10 @@ pub fn next(self: *@This(), srate: f32) f32 {
         self.bs.tick();
         self.phase -= 1;
     }
-    return 0;
+    for (self.midibuf.emit()) |event| {
+        self.pdbass.handleMidiEvent(event);
+    }
+    return self.pdbass.next(srate) * 0.5;
 }
 
 pub inline fn getTempo(self: *@This()) f32 {
