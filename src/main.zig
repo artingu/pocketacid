@@ -14,6 +14,7 @@ const DrumInterface = @import("DrumInterface.zig");
 const BassInterface = @import("BassInterface.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
+const JoystickHandler = @import("JoystickHandler.zig");
 
 const w = 30;
 const h = 30;
@@ -42,10 +43,12 @@ pub fn main() !void {
     const perf_freq: f64 = @floatFromInt(sdl.getPerformanceFrequency());
 
     var held = ButtonState{};
+    var jh = JoystickHandler{};
     var bh = ButtonHandler{};
     var cm = ControllerManager{};
-    // var drum_interface = DrumInterface{ .pattern = &state.pattern };
     var bass_interface = BassInterface{ .bank = &state.bass_patterns };
+
+    var lj_mode: JoyMode = .timbre_mod;
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
@@ -65,7 +68,10 @@ pub fn main() !void {
 
         var e: sdl.Event = undefined;
         while (0 != sdl.pollEvent(&e)) {
-            if (!held.handle(&e)) switch (e.type) {
+            if (jh.handle(&e)) continue;
+            if (held.handle(&e)) continue;
+
+            switch (e.type) {
                 sdl.QUIT => break :mainloop,
                 sdl.CONTROLLERDEVICEADDED => {
                     cm.open(e.cdevice.which);
@@ -74,13 +80,46 @@ pub fn main() !void {
                     cm.close(e.cdevice.which);
                 },
                 else => {},
-            };
+            }
         }
 
         tm.clear(colors.normal);
 
         const trig = bh.handle(held, dt);
 
+        {
+            const joy_sensitivity = 0.5;
+            const lx = jh.lx * dt * joy_sensitivity;
+            const ly = jh.ly * dt * joy_sensitivity;
+
+            const lparams = &Sys.sound_engine.pdbass.params;
+
+            switch (lj_mode) {
+                .timbre_mod => {
+                    const prevx = lparams.get(.mod_depth);
+                    const prevy = lparams.get(.timbre);
+                    lparams.set(.mod_depth, @min(1, @max(0, lx + prevx)));
+                    lparams.set(.timbre, @min(1, @max(0, prevy - ly)));
+                },
+                .res_feedback => {
+                    const prevx = lparams.get(.feedback);
+                    const prevy = lparams.get(.res);
+                    lparams.set(.feedback, @min(1, @max(0, lx + prevx)));
+                    lparams.set(.res, @min(1, @max(0, prevy - ly)));
+                },
+                .decay_accent => {
+                    const prevx = lparams.get(.accentness);
+                    const prevy = lparams.get(.decay);
+                    lparams.set(.accentness, @min(1, @max(0, lx + prevx)));
+                    lparams.set(.decay, @min(1, @max(0, prevy - ly)));
+                },
+            }
+        }
+
+        if (trig.combo("l3")) {
+            lj_mode.next();
+            std.debug.print("l3\n", .{});
+        }
         if (trig.combo("l+up")) Sys.sound_engine.changeTempo(10);
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
@@ -112,3 +151,17 @@ pub fn main() !void {
         sys.postRender();
     }
 }
+
+const JoyMode = enum {
+    timbre_mod,
+    res_feedback,
+    decay_accent,
+
+    fn next(self: *JoyMode) void {
+        self.* = switch (self.*) {
+            .timbre_mod => .res_feedback,
+            .res_feedback => .decay_accent,
+            .decay_accent => .timbre_mod,
+        };
+    }
+};
