@@ -86,62 +86,62 @@ pub fn handle(self: *@This(), input: InputState) void {
     if (self.row == .pitch) {
         var sc = step.copy();
 
-        if (input.press.a and sc.pitch == BassPattern.off) {
+        if ((input.press.a or input.press.x) and sc.pitch == BassPattern.off) {
             sc.pitch = self.buffer;
             step.assume(sc);
             self.changedpitch = true;
         }
 
         if (sc.pitch != BassPattern.off) {
-            if (input.hold.a and input.repeat.up) {
+            if ((input.hold.a or input.hold.x) and input.repeat.up) {
                 self.changedpitch = true;
                 sc.pitch = @min(12, sc.pitch + 1);
-                self.buffer = sc.pitch;
+                if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
                 step.assume(sc);
-            } else if (input.hold.a and input.repeat.down) {
+            } else if ((input.hold.a or input.hold.x) and input.repeat.down) {
                 self.changedpitch = true;
                 if (sc.pitch != 0) sc.pitch = sc.pitch - 1;
-                self.buffer = sc.pitch;
+                if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
                 step.assume(sc);
             }
         }
 
-        if (input.release.a) {
+        if (input.release.a or input.release.x) {
             if (!self.changedpitch) {
-                self.buffer = sc.pitch;
+                if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
                 sc.pitch = BassPattern.off;
                 step.assume(sc);
             }
             self.changedpitch = false;
-            self.nextIdx();
+            if (input.release.a) self.nextIdx();
         }
     }
 
-    if (input.repeat.a) switch (self.row) {
+    if (input.repeat.a or input.repeat.x) switch (self.row) {
         .pitch => {},
         .octup => {
             var c = step.copy();
             c.octup = !c.octup;
             step.assume(c);
-            self.nextIdx();
+            if (input.repeat.a) self.nextIdx();
         },
         .octdown => {
             var c = step.copy();
             c.octdown = !c.octdown;
             step.assume(c);
-            self.nextIdx();
+            if (input.repeat.a) self.nextIdx();
         },
         .slide => {
             var c = step.copy();
             c.slide = !c.slide;
             step.assume(c);
-            self.nextIdx();
+            if (input.repeat.a) self.nextIdx();
         },
         .accent => {
             var c = step.copy();
             c.accent = !c.accent;
             step.assume(c);
-            self.nextIdx();
+            if (input.repeat.a) self.nextIdx();
         },
     };
 
