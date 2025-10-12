@@ -61,6 +61,26 @@ pub fn handle(self: *Arranger, input: InputState) void {
         self.changed = true;
     }
 
+    if ((input.combo("a+down") or input.combo("x+down")) and curval != 0xff) {
+        const newval = if (curval >= 0x10)
+            curval - 0x10
+        else
+            0x00;
+        @atomicStore(u8, over_addr, newval, .seq_cst);
+        self.yank = newval;
+        self.changed = true;
+    }
+
+    if ((input.combo("a+up") or input.combo("x+up")) and curval != 0xff) {
+        const newval = if (curval < 0xef)
+            curval + 0x10
+        else
+            0xfe;
+        @atomicStore(u8, over_addr, newval, .seq_cst);
+        self.yank = newval;
+        self.changed = true;
+    }
+
     if (input.combo("up")) self.prevRow();
     if (input.combo("down")) self.nextRow();
 
