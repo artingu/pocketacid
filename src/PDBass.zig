@@ -12,9 +12,9 @@ const Accessor = @import("Accessor.zig").Accessor;
 
 pub const Params = struct {
     res: f32 = 1,
-    timbre: f32 = 0.15,
+    timbre: f32 = 0.5 - 0.125,
     feedback: f32 = 0,
-    mod_depth: f32 = 1,
+    mod_depth: f32 = 0.5,
     accentness: f32 = 0.3,
     decay: f32 = 0.2,
     channel: u4 = 0,

@@ -13,6 +13,7 @@ pub const ButtonState = packed struct {
     l: bool = false,
     r: bool = false,
     start: bool = false,
+    select: bool = false,
 
     pub const Enum = enum {
         up,
@@ -26,6 +27,7 @@ pub const ButtonState = packed struct {
         l,
         r,
         start,
+        select,
         pub fn fromString(str: []const u8) ?Enum {
             return std.meta.stringToEnum(Enum, str);
         }
@@ -48,6 +50,7 @@ pub const ButtonState = packed struct {
             .l => self.l,
             .r => self.r,
             .start => self.start,
+            .select => self.select,
         };
     }
 
@@ -64,6 +67,7 @@ pub const ButtonState = packed struct {
             .l => self.l = val,
             .r => self.r = val,
             .start => self.start = val,
+            .select => self.select = val,
         }
     }
 
@@ -83,6 +87,7 @@ pub const ButtonState = packed struct {
                     sdl.SCANCODE_Q => self.l = true,
                     sdl.SCANCODE_W => self.r = true,
                     sdl.SCANCODE_RETURN => self.start = true,
+                    sdl.SCANCODE_TAB => self.select = true,
                     else => return false,
                 }
             },
@@ -100,6 +105,7 @@ pub const ButtonState = packed struct {
                     sdl.SCANCODE_Q => self.l = false,
                     sdl.SCANCODE_W => self.r = false,
                     sdl.SCANCODE_RETURN => self.start = false,
+                    sdl.SCANCODE_TAB => self.select = false,
                     else => return false,
                 }
             },
@@ -115,6 +121,7 @@ pub const ButtonState = packed struct {
                 sdl.CONTROLLER_BUTTON_LEFTSHOULDER => self.l = false,
                 sdl.CONTROLLER_BUTTON_RIGHTSHOULDER => self.r = false,
                 sdl.CONTROLLER_BUTTON_START => self.start = false,
+                sdl.CONTROLLER_BUTTON_BACK => self.select = false,
                 else => return false,
             },
             sdl.CONTROLLERBUTTONDOWN => switch (e.cbutton.button) {
@@ -129,6 +136,7 @@ pub const ButtonState = packed struct {
                 sdl.CONTROLLER_BUTTON_LEFTSHOULDER => self.l = true,
                 sdl.CONTROLLER_BUTTON_RIGHTSHOULDER => self.r = true,
                 sdl.CONTROLLER_BUTTON_START => self.start = true,
+                sdl.CONTROLLER_BUTTON_BACK => self.select = true,
                 else => return false,
             },
             else => return false,
@@ -182,6 +190,7 @@ y: Both = .{},
 l: Both = .{},
 r: Both = .{},
 start: Both = .{},
+select: Both = .{},
 
 pub const States = struct {
     hold: ButtonState = .{},

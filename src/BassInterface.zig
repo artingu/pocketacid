@@ -60,6 +60,11 @@ buffer: u4 = 0,
 row: Row = .pitch,
 changedpitch: bool = false,
 
+pub inline fn setPattern(self: *@This(), pat: u8) void {
+    self.pattern_idx = pat;
+    self.idx = @min(self.idx, self.selectedPattern().length() - 1);
+}
+
 pub fn handle(self: *@This(), input: InputState) void {
     const step = self.selectedStep();
 
@@ -193,10 +198,10 @@ fn prevIdx(self: *@This()) void {
         self.selectedPattern().len - 1;
 }
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32) void {
+pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
     const pattern = self.bank[self.pattern_idx];
     const pattern_len = pattern.length();
-    const on = @mod(self.blink * 4, 1) < 0.5;
+    const on = !active or @mod(self.blink * 4, 1) < 0.5;
 
     for (0..12) |i| {
         const basecolor: u8 = if (pattern.steps[self.idx].pitch == @as(usize, i))
