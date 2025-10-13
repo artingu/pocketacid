@@ -1,5 +1,6 @@
 const Arranger = @This();
 
+const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
 const colors = @import("colors.zig");
@@ -110,7 +111,15 @@ inline fn prevColumn(self: *Arranger) void {
         self.column - 1;
 }
 
-pub fn display(self: *Arranger, tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
+pub fn display(
+    self: *Arranger,
+    tm: *TextMatrix,
+    x: usize,
+    y: usize,
+    dt: f32,
+    active: bool,
+    playback_info: []const PlaybackInfo,
+) void {
     const half_height: isize = height / 2;
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
 
@@ -123,7 +132,14 @@ pub fn display(self: *Arranger, tm: *TextMatrix, x: usize, y: usize, dt: f32, ac
 
             for (self.columns, 1..) |column, xoffset| {
                 const alter = [_]u8{ colors.normal, colors.hilight };
-                const bc = alter[xoffset % 2];
+                const pi = playback_info[xoffset - 1];
+
+                const playing_row = pi.running and pi.arrangement_row == uidx;
+
+                const bc = if (playing_row)
+                    colors.playing
+                else
+                    alter[xoffset % 2];
 
                 const blinked = if (on) invert(bc) else bc;
                 const color = if (uidx == self.row and self.column + 1 == xoffset) blinked else bc;

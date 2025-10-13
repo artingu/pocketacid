@@ -3,6 +3,7 @@ const Step = BassPattern.Step;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
 const colors = @import("colors.zig");
+const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 
 const NoteInfo = struct {
     str: []const u8,
@@ -198,7 +199,7 @@ fn prevIdx(self: *@This()) void {
         self.selectedPattern().len - 1;
 }
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
+pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool, pi: PlaybackInfo) void {
     const pattern = self.bank[self.pattern_idx];
     const pattern_len = pattern.length();
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
@@ -216,7 +217,8 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     tm.putch(x + 1, y + 16, colors.normal, '/');
     tm.putch(x + 1, y + 17, colors.normal, 4);
     for (0..BassPattern.maxlen) |i| {
-        self.column(tm, x + 3 + i, y, i, i < pattern_len, on);
+        const playing = pi.pattern == self.pattern_idx and pi.step == i and pi.running;
+        self.column(tm, x + 3 + i, y, i, i < pattern_len, on, playing);
     }
 
     self.blink = @mod(self.blink + dt, 1);
@@ -226,12 +228,12 @@ inline fn invert(color: u8) u8 {
     return ((color & 0xf) << 4) | (color >> 4);
 }
 
-fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize, active: bool, blink: bool) void {
+fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize, active: bool, blink: bool, playing: bool) void {
     const pattern = self.bank[self.pattern_idx];
     const step = pattern.steps[idx].copy();
     const selected = idx == self.idx;
     const hilight: u8 = if (@as(usize, idx & 0x3) == 0) colors.hilight else colors.normal;
-    const color: u8 = if (active) hilight else colors.inactive;
+    const color: u8 = if (playing) colors.playing else if (active) hilight else colors.inactive;
     const blinked = if (blink and selected) invert(color) else color;
 
     // Pitches

@@ -8,8 +8,13 @@ const mintempo = 1;
 midibuf: *MidiBuf,
 phase: f32 = 0,
 bpm: f32 = 120,
+startrow: u8 = 0,
 
-bs: BassSeq = .{ .pattern = &@import("state.zig").bass_patterns[0], .channel = 0 },
+bs: BassSeq = .{
+    .patterns = &@import("state.zig").bass_patterns,
+    .arrangement = &@import("state.zig").bass1_arrange,
+    .channel = 0,
+},
 pdbass: PDBass = .{},
 
 running: bool = false,
@@ -22,9 +27,10 @@ pub fn everyBuffer(self: *@This()) void {
             @atomicStore(bool, &self.running, false, .seq_cst);
             self.bs.stop();
         } else {
+            const startrow = @atomicLoad(u8, &self.startrow, .seq_cst);
             @atomicStore(bool, &self.running, true, .seq_cst);
             self.phase = 1;
-            self.bs.start();
+            self.bs.start(startrow);
         }
     }
 
@@ -61,7 +67,8 @@ pub inline fn changeTempo(self: *@This(), change: f32) void {
     @atomicStore(f32, &self.bpm, new, .seq_cst);
 }
 
-pub fn startstop(self: *@This()) void {
+pub fn startstop(self: *@This(), startrow: u8) void {
+    @atomicStore(u8, &self.startrow, startrow, .seq_cst);
     @atomicStore(bool, &self.toggle_running, true, .seq_cst);
 }
 

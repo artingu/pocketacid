@@ -15,6 +15,7 @@ const BassInterface = @import("BassInterface.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
+const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 
 const w = 30;
 const h = 30;
@@ -116,35 +117,40 @@ pub fn main() !void {
             }
         }
 
-        if (trig.combo("l3")) {
-            lj_mode.next();
-            std.debug.print("l3\n", .{});
-        }
+        if (trig.comboPress("l3")) lj_mode.next();
         if (trig.combo("l+up")) Sys.sound_engine.changeTempo(10);
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
         if (trig.combo("l+left")) Sys.sound_engine.changeTempo(-1);
-        if (trig.press.start) Sys.sound_engine.startstop();
+        if (trig.press.start) Sys.sound_engine.startstop(arranger.row);
         if (trig.press.select) arrange = !arrange;
         if (Sys.sound_engine.isRunning())
             tm.putch(0, 0, colors.playing, 0x10);
         tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
 
+        const pi: []const PlaybackInfo = &[_]PlaybackInfo{
+            Sys.sound_engine.bs.playbackInfo(),
+            PlaybackInfo{},
+            PlaybackInfo{},
+        };
+
         if (arrange) {
             arranger.handle(trig);
             if (arranger.selectedPattern()) |p| {
                 bass_interface.setPattern(p);
-                bass_interface.display(&tm, 10, 1, 0, false);
+                bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
             }
-            arranger.display(&tm, 1, 2, dt, true);
+            arranger.display(&tm, 1, 2, dt, true, pi);
         } else {
             if (arranger.selectedPattern()) |p| {
                 bass_interface.handle(trig);
                 bass_interface.setPattern(p);
-                bass_interface.display(&tm, 10, 1, dt, true);
+                bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
             }
-            arranger.display(&tm, 1, 2, 0, false);
+            arranger.display(&tm, 1, 2, 0, false, pi);
         }
+
+        tm.print(1, 19, colors.hilight, "{s}: ", .{lj_mode.str()});
 
         sys.preRender();
         cd.flush();
@@ -162,6 +168,14 @@ const JoyMode = enum {
             .timbre_mod => .res_feedback,
             .res_feedback => .decay_accent,
             .decay_accent => .timbre_mod,
+        };
+    }
+
+    fn str(self: JoyMode) []const u8 {
+        return switch (self) {
+            .timbre_mod => "t/m",
+            .res_feedback => "r/f",
+            .decay_accent => "d/a",
         };
     }
 };

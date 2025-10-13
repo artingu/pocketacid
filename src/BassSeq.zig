@@ -3,21 +3,36 @@ const BassPattern = @import("BassPattern.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const BassSeq = @This();
 const midi = @import("midi.zig");
+const state = @import("state.zig");
 
-pattern: *BassPattern,
-nextpattern: ?*BassPattern = null,
+pub const PlaybackInfo = packed struct {
+    arrangement_row: u8 = 0,
+    pattern: u8 = 0,
+    step: u8 = 0,
+    running: bool = false,
+    _: u7 = undefined,
+};
+
+patterns: *[256]BassPattern,
+arrangement: *[256]u8,
+
+start_arrangement_idx: u8 = 0,
+arrangement_idx: u8 = 0,
+// next_arrangement_idx: ?u8 = null,
+
+current_pattern: u8 = 0xff,
 midibuf: ?*MidiBuf = null,
 
 steptick: u3 = 0,
 step: u5 = 0,
 running: bool = false,
 
+info: PlaybackInfo = .{},
+
 curstep: BassPattern.Step = .{},
 playing_note: ?u7 = null,
-
 basepitch: u7 = 40,
 
-// Don't change during playback
 channel: u4,
 
 fn noteOn(self: *BassSeq, pitch: u7, velocity: u7) void {
@@ -49,9 +64,10 @@ fn maybeNoteOff(self: *BassSeq) void {
 pub fn tick(self: *BassSeq) void {
     if (!self.running) return;
 
+    self.updatePlaybackInfo();
     switch (self.steptick) {
         0 => {
-            self.curstep = self.pattern.steps[self.step].copy();
+            self.curstep = self.patterns.*[self.current_pattern].steps[self.step].copy();
             if (self.curstep.midi(@atomicLoad(u7, &self.basepitch, .seq_cst))) |curpitch|
                 self.noteOn(curpitch, if (self.curstep.accent) 127 else 63);
         },
@@ -64,21 +80,57 @@ pub fn tick(self: *BassSeq) void {
         self.steptick = 0;
         self.step += 1;
 
-        if (self.step >= self.pattern.length()) {
+        if (self.step >= self.patterns.*[self.current_pattern].length()) {
             self.step = 0;
-            if (self.nextpattern) |next| self.pattern = next;
+
+            if (self.current_pattern != 0xff) {
+                var arr_idx = @atomicLoad(u8, &self.arrangement_idx, .seq_cst);
+                arr_idx +%= 1;
+                const cur_pattern = @atomicLoad(u8, &self.arrangement[arr_idx], .seq_cst);
+                arr_idx = if (cur_pattern == 0xff)
+                    self.start_arrangement_idx
+                else
+                    arr_idx;
+                @atomicStore(u8, &self.arrangement_idx, arr_idx, .seq_cst);
+                self.updateCurrentPattern();
+            }
+
+            // if (self.next_arrangement_idx) |next| self.arrangement_idx = next;
         }
     }
 }
 
-pub fn start(self: *BassSeq) void {
-    self.running = true;
+inline fn updatePlaybackInfo(self: *BassSeq) void {
+    @atomicStore(PlaybackInfo, &self.info, .{
+        .arrangement_row = self.arrangement_idx,
+        .pattern = self.current_pattern,
+        .step = self.step,
+        .running = self.running and self.current_pattern != 0xff,
+    }, .seq_cst);
+}
+
+inline fn updateCurrentPattern(self: *BassSeq) void {
+    self.current_pattern = @atomicLoad(u8, &self.arrangement[self.arrangement_idx], .seq_cst);
+}
+
+pub inline fn playbackInfo(self: *BassSeq) PlaybackInfo {
+    return @atomicLoad(PlaybackInfo, &self.info, .seq_cst);
+}
+
+pub fn start(self: *BassSeq, idx: u8) void {
+    self.start_arrangement_idx = idx;
+    self.arrangement_idx = idx;
+    // self.next_idx = null;
+    self.updateCurrentPattern();
+
     self.step = 0;
     self.steptick = 0;
-    self.nextpattern = null;
+
+    self.running = true;
 }
 
 pub fn stop(self: *BassSeq) void {
     self.running = false;
+    self.updatePlaybackInfo();
     self.maybeNoteOff();
 }
