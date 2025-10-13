@@ -16,6 +16,7 @@ const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
 const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
+const PDBass = @import("PDBass.zig");
 
 const w = 30;
 const h = 30;
@@ -150,7 +151,12 @@ pub fn main() !void {
             arranger.display(&tm, 1, 2, 0, false, pi);
         }
 
-        tm.print(1, 19, colors.hilight, "{s}: ", .{lj_mode.str()});
+        const lxy = lj_mode.values(&Sys.sound_engine.pdbass.params);
+        tm.print(1, 19, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
+            lj_mode.str(),
+            lxy.y,
+            lxy.x,
+        });
 
         sys.preRender();
         cd.flush();
@@ -162,6 +168,11 @@ const JoyMode = enum {
     timbre_mod,
     res_feedback,
     decay_accent,
+
+    const Pair = struct {
+        x: u8,
+        y: u8,
+    };
 
     fn next(self: *JoyMode) void {
         self.* = switch (self.*) {
@@ -176,6 +187,29 @@ const JoyMode = enum {
             .timbre_mod => "t/m",
             .res_feedback => "r/f",
             .decay_accent => "d/a",
+        };
+    }
+
+    fn values(self: JoyMode, params: *const PDBass.Params) Pair {
+        const FloatPair = struct { x: f32, y: f32 };
+        const v: FloatPair = switch (self) {
+            .timbre_mod => .{
+                .y = params.get(.timbre),
+                .x = params.get(.mod_depth),
+            },
+            .res_feedback => .{
+                .y = params.get(.res),
+                .x = params.get(.feedback),
+            },
+            .decay_accent => .{
+                .y = params.get(.decay),
+                .x = params.get(.accentness),
+            },
+        };
+
+        return .{
+            .x = @intFromFloat(@round(v.x * 0xff)),
+            .y = @intFromFloat(@round(v.y * 0xff)),
         };
     }
 };
