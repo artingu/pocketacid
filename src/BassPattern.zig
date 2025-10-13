@@ -7,6 +7,7 @@ pub const maxlen = 16;
 pub const off: u4 = 0xf;
 
 len: Size = 16,
+base: u7 = 48,
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 
 pub inline fn length(self: *const @This()) Size {
@@ -23,6 +24,20 @@ pub fn decLength(self: *@This()) void {
     const len = @atomicLoad(Size, &self.len, .seq_cst);
     const new: Size = if (len <= 1) 1 else len - 1;
     @atomicStore(Size, &self.len, new, .seq_cst);
+}
+
+pub fn incBase(self: *@This()) void {
+    const old = @atomicLoad(u7, &self.base, .seq_cst);
+    if (old < 103) @atomicStore(u7, &self.base, old + 1, .seq_cst);
+}
+
+pub fn decBase(self: *@This()) void {
+    const old = @atomicLoad(u7, &self.base, .seq_cst);
+    if (old > 12) @atomicStore(u7, &self.base, old - 1, .seq_cst);
+}
+
+pub inline fn getBase(self: *@This()) u7 {
+    return @atomicLoad(u7, &self.base, .seq_cst);
 }
 
 pub const Step = packed struct(u8) {

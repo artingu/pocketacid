@@ -11,18 +11,18 @@ const NoteInfo = struct {
 };
 
 const notes = [12]NoteInfo{
-    .{ .str = "C ", .inv = false },
+    .{ .str = "C", .inv = false },
     .{ .str = "C#", .inv = true },
-    .{ .str = "D ", .inv = false },
+    .{ .str = "D", .inv = false },
     .{ .str = "D#", .inv = true },
-    .{ .str = "E ", .inv = false },
-    .{ .str = "F ", .inv = false },
+    .{ .str = "E", .inv = false },
+    .{ .str = "F", .inv = false },
     .{ .str = "F#", .inv = true },
-    .{ .str = "G ", .inv = false },
+    .{ .str = "G", .inv = false },
     .{ .str = "G#", .inv = true },
-    .{ .str = "A ", .inv = false },
+    .{ .str = "A", .inv = false },
     .{ .str = "A#", .inv = true },
-    .{ .str = "B ", .inv = false },
+    .{ .str = "B", .inv = false },
 };
 
 const Row = enum {
@@ -83,6 +83,9 @@ pub fn handle(self: *@This(), input: InputState) void {
             self.idx = @min(self.idx, sp.length() - 1);
         }
         if (input.repeat.right) sp.incLength();
+
+        if (input.repeat.up) self.selectedPattern().incBase();
+        if (input.repeat.down) self.selectedPattern().decBase();
     }
     if (self.row == .pitch) {
         var sc = step.copy();
@@ -200,22 +203,31 @@ fn prevIdx(self: *@This()) void {
 }
 
 pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool, pi: PlaybackInfo) void {
-    const pattern = self.bank[self.pattern_idx];
+    const pattern = self.selectedPattern();
     const pattern_len = pattern.length();
+    const base = pattern.getBase();
+
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
 
-    for (0..12) |i| {
+    tm.print(x + 3, y, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
+    tm.print(x + 11, y, colors.inactive, "base:{s:-<2}{}", .{
+        notes[base % 12].str,
+        (base / 12) - 1,
+    });
+
+    for (0..13) |i| {
         const basecolor: u8 = if (pattern.steps[self.idx].pitch == @as(usize, i))
             colors.playing
         else
             colors.normal;
-        const color = if (notes[i].inv) basecolor else invert(basecolor);
-        tm.puts(x, y + 12 - i, color, notes[i].str);
+        const notesidx = (i + base) % 12;
+        const color = if (notes[notesidx].inv) basecolor else invert(basecolor);
+        tm.puts(x, y + 13 - i, color, notes[notesidx].str);
     }
-    tm.putch(x + 1, y + 14, colors.normal, '+');
-    tm.putch(x + 1, y + 15, colors.normal, '-');
-    tm.putch(x + 1, y + 16, colors.normal, '/');
-    tm.putch(x + 1, y + 17, colors.normal, 4);
+    tm.putch(x + 1, y + 15, colors.normal, '+');
+    tm.putch(x + 1, y + 16, colors.normal, '-');
+    tm.putch(x + 1, y + 17, colors.normal, '/');
+    tm.putch(x + 1, y + 18, colors.normal, 4);
     for (0..BassPattern.maxlen) |i| {
         const playing = pi.pattern == self.pattern_idx and pi.step == i and pi.running;
         self.column(tm, x + 3 + i, y, i, i < pattern_len, on, playing);
@@ -237,16 +249,16 @@ fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize,
     const blinked = if (blink and selected) invert(color) else color;
 
     // Pitches
-    for (0..12) |i| {
+    for (0..13) |i| {
         const pc = if (self.row == .pitch) blinked else color;
         const ch: u8 = if (step.pitch == i) 9 else '.';
-        tm.putch(x, y + 12 - i, pc, ch);
+        tm.putch(x, y + 13 - i, pc, ch);
     }
 
     // oct up, down, accent, slide
 
-    tm.putch(x, y + 14, if (self.row == .octup) blinked else color, if (step.octup) 9 else '.');
-    tm.putch(x, y + 15, if (self.row == .octdown) blinked else color, if (step.octdown) 9 else '.');
-    tm.putch(x, y + 16, if (self.row == .slide) blinked else color, if (step.slide) 9 else '.');
-    tm.putch(x, y + 17, if (self.row == .accent) blinked else color, if (step.accent) 9 else '.');
+    tm.putch(x, y + 15, if (self.row == .octup) blinked else color, if (step.octup) 9 else '.');
+    tm.putch(x, y + 16, if (self.row == .octdown) blinked else color, if (step.octdown) 9 else '.');
+    tm.putch(x, y + 17, if (self.row == .slide) blinked else color, if (step.slide) 9 else '.');
+    tm.putch(x, y + 18, if (self.row == .accent) blinked else color, if (step.accent) 9 else '.');
 }

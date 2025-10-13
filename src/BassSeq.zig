@@ -31,7 +31,6 @@ info: PlaybackInfo = .{},
 
 curstep: BassPattern.Step = .{},
 playing_note: ?u7 = null,
-basepitch: u7 = 40,
 
 channel: u4,
 
@@ -68,7 +67,7 @@ pub fn tick(self: *BassSeq) void {
     switch (self.steptick) {
         0 => {
             self.curstep = self.patterns.*[self.current_pattern].steps[self.step].copy();
-            if (self.curstep.midi(@atomicLoad(u7, &self.basepitch, .seq_cst))) |curpitch|
+            if (self.curstep.midi(self.patterns.*[self.current_pattern].getBase())) |curpitch|
                 self.noteOn(curpitch, if (self.curstep.accent) 127 else 63);
         },
         3 => if (!self.curstep.slide) self.maybeNoteOff(),
