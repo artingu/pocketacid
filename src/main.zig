@@ -19,7 +19,7 @@ const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
 
 const w = 30;
-const h = 30;
+const h = 22;
 
 pub fn main() !void {
     var sys = try Sys.init("aseq", w * 8, h * 8);
