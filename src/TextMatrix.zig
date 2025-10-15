@@ -1,12 +1,14 @@
 const std = @import("std");
 const Cell = @import("CharDisplay.zig").Cell;
+const Attrib = @import("CharDisplay.zig").Attrib;
+const RGB = @import("rgb.zig").RGB;
 
 w: usize,
 h: usize,
 out: []Cell,
 buf: [100]u8 = undefined,
 
-pub fn clear(self: *const @This(), attrib: u8) void {
+pub fn clear(self: *const @This(), attrib: Attrib) void {
     for (0..self.h) |y|
         for (0..self.w) |x| {
             self.out[x + y * self.w] = .{ .char = ' ', .attrib = attrib };
@@ -19,7 +21,7 @@ pub fn box(
     y: usize,
     w: usize,
     h: usize,
-    attrib: u8,
+    attrib: Attrib,
 ) void {
     self.putch(x, y, attrib, 0xda);
     self.putch(x + w, y, attrib, 0xbf);
@@ -40,7 +42,7 @@ pub fn print(
     self: *@This(),
     x: usize,
     y: usize,
-    attrib: u8,
+    attrib: Attrib,
     comptime fmt: []const u8,
     args: anytype,
 ) void {
@@ -52,7 +54,7 @@ pub fn puts(
     self: *const @This(),
     x: usize,
     y: usize,
-    attrib: u8,
+    attrib: Attrib,
     str: []const u8,
 ) void {
     for (str, 0..) |ch, i|
@@ -63,7 +65,7 @@ pub inline fn putch(
     self: *const @This(),
     x: usize,
     y: usize,
-    attrib: u8,
+    attrib: Attrib,
     ch: u8,
 ) void {
     if (x >= self.w) return;

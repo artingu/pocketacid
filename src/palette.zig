@@ -1,4 +1,4 @@
-const RGB = @import("RGB.zig");
+const RGB = @import("rgb.zig").RGB;
 
 pub const pal = [16]RGB{
     RGB.init(0, 0, 0),

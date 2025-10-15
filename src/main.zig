@@ -27,10 +27,9 @@ pub fn main() !void {
 
     var cells: [w * h]CharDisplay.Cell = undefined;
     var last_rendered: [w * h]CharDisplay.Cell = undefined;
-    for (0..w * h) |i| last_rendered[i] = .{ .char = 0, .attrib = 0 };
+    for (0..w * h) |i| last_rendered[i] = .{ .char = 0, .attrib = .{} };
     var tm = TextMatrix{ .w = w, .h = h, .out = &cells };
     const cd = CharDisplay{
-        .palette = @import("palette.zig").pal,
         .w = w,
         .h = h,
         .cells = &cells,

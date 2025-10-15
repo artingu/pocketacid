@@ -1,3 +1,4 @@
+const Attrib = @import("CharDisplay.zig").Attrib;
 const BassPattern = @import("BassPattern.zig");
 const Step = BassPattern.Step;
 const InputState = @import("ButtonHandler.zig").States;
@@ -267,7 +268,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     });
 
     for (0..13) |i| {
-        const basecolor: u8 = if (pattern.steps[self.idx].pitch == @as(usize, i))
+        const basecolor: Attrib = if (pattern.steps[self.idx].pitch == @as(usize, i))
             colors.playing
         else
             colors.normal;
@@ -287,16 +288,16 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     self.blink = @mod(self.blink + dt, 1);
 }
 
-inline fn invert(color: u8) u8 {
-    return ((color & 0xf) << 4) | (color >> 4);
+inline fn invert(a: Attrib) Attrib {
+    return .{ .fg = a.bg, .bg = a.fg };
 }
 
 fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize, active: bool, blink: bool, playing: bool) void {
     const pattern = self.bank[self.pattern_idx];
     const step = pattern.steps[idx].copy();
     const selected = idx == self.idx;
-    const hilight: u8 = if (@as(usize, idx & 0x3) == 0) colors.hilight else colors.normal;
-    const color: u8 = if (playing) colors.playing else if (active) hilight else colors.inactive;
+    const hilight: Attrib = if (@as(usize, idx & 0x3) == 0) colors.hilight else colors.normal;
+    const color: Attrib = if (playing) colors.playing else if (active) hilight else colors.inactive;
     const blinked = if (blink and selected) invert(color) else color;
 
     // Pitches

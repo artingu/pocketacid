@@ -1,7 +1,6 @@
-const RGB = @import("RGB.zig");
+const RGB = @import("rgb.zig").RGB;
 const sdl = @import("sdl.zig");
 
-palette: [16]RGB,
 w: usize,
 h: usize,
 cells: []Cell,
@@ -9,9 +8,14 @@ last_rendered: []Cell,
 out: *sdl.Renderer,
 font: *sdl.Texture,
 
+pub const Attrib = packed struct {
+    fg: RGB = RGB.init(0, 0, 0),
+    bg: RGB = RGB.init(0, 0, 0),
+};
+
 pub const Cell = packed struct {
+    attrib: Attrib,
     char: u8,
-    attrib: u8,
 
     fn eq(self: Cell, other: Cell) bool {
         return self.char == other.char and self.attrib == other.attrib;
@@ -34,10 +38,8 @@ inline fn renderCell(self: *const @This(), x: usize, y: usize) void {
     const src = sdl.Rect{ .x = src_x * 8, .y = src_y * 8, .w = 8, .h = 8 };
     const dst = sdl.Rect{ .x = @intCast(x * 8), .y = @intCast(y * 8), .w = 8, .h = 8 };
 
-    const fgc = cell.attrib >> 4;
-    const bgc = cell.attrib & 0xf;
-    const fg = self.palette[@as(usize, @intCast(fgc))];
-    const bg = self.palette[@as(usize, @intCast(bgc))];
+    const fg = cell.attrib.fg;
+    const bg = cell.attrib.bg;
 
     // Render bg
     _ = sdl.setTextureColorMod(self.font, bg.r, bg.g, bg.b);

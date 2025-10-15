@@ -1,5 +1,6 @@
 const Arranger = @This();
 
+const Attrib = @import("CharDisplay.zig").Attrib;
 const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
@@ -129,7 +130,7 @@ pub fn display(
             tm.print(x, y + yoffset, colors.inactive, "{x:0>2}", .{uidx});
 
             for (self.columns, 1..) |column, xoffset| {
-                const alter = [_]u8{ colors.normal, colors.hilight };
+                const alter = [_]Attrib{ colors.normal, colors.hilight };
                 const pi = playback_info[xoffset - 1];
 
                 const playing_row = pi.running and pi.arrangement_row == uidx;
@@ -155,6 +156,6 @@ pub fn display(
     self.blink = @mod(self.blink + dt, 1);
 }
 
-inline fn invert(color: u8) u8 {
-    return ((color & 0xf) << 4) | (color >> 4);
+inline fn invert(a: Attrib) Attrib {
+    return .{ .fg = a.bg, .bg = a.fg };
 }
