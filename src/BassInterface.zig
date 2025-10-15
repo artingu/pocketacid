@@ -90,62 +90,71 @@ pub fn handle(self: *@This(), input: InputState) void {
     if (self.row == .pitch) {
         var sc = step.copy();
 
-        if ((input.press.a or input.press.x) and sc.pitch == BassPattern.off) {
+        if ((input.press.a) and sc.pitch == BassPattern.off) {
             sc.pitch = self.buffer;
             step.assume(sc);
             self.changedpitch = true;
         }
 
         if (sc.pitch != BassPattern.off) {
-            if ((input.hold.a or input.hold.x) and input.repeat.up) {
-                self.changedpitch = true;
-                sc.pitch = @min(12, sc.pitch + 1);
-                if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
-                step.assume(sc);
-            } else if ((input.hold.a or input.hold.x) and input.repeat.down) {
-                self.changedpitch = true;
-                if (sc.pitch != 0) sc.pitch = sc.pitch - 1;
-                if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
-                step.assume(sc);
+            if (input.hold.a) {
+                if (input.repeat.up) {
+                    self.changedpitch = true;
+                    sc.pitch = @min(12, sc.pitch + 1);
+                    if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
+                    step.assume(sc);
+                } else if (input.repeat.down) {
+                    self.changedpitch = true;
+                    if (sc.pitch != 0) sc.pitch = sc.pitch - 1;
+                    if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
+                    step.assume(sc);
+                }
             }
         }
 
-        if (input.release.a or input.release.x) {
+        if (input.hold.x) {
+            if (input.repeat.up) self.incRight();
+            if (input.repeat.down) self.decRight();
+            if (input.repeat.left) self.rotLeft();
+            if (input.repeat.right) self.rotRight();
+        }
+
+        if (input.release.a) {
             if (!self.changedpitch) {
                 if (sc.pitch != BassPattern.off) self.buffer = sc.pitch;
                 sc.pitch = BassPattern.off;
                 step.assume(sc);
             }
             self.changedpitch = false;
-            if (input.release.a) self.nextIdx();
+            self.nextIdx();
         }
     }
 
-    if (input.repeat.a or input.repeat.x) switch (self.row) {
+    if (input.repeat.a) switch (self.row) {
         .pitch => {},
         .octup => {
             var c = step.copy();
             c.octup = !c.octup;
             step.assume(c);
-            if (input.repeat.a) self.nextIdx();
+            self.nextIdx();
         },
         .octdown => {
             var c = step.copy();
             c.octdown = !c.octdown;
             step.assume(c);
-            if (input.repeat.a) self.nextIdx();
+            self.nextIdx();
         },
         .slide => {
             var c = step.copy();
             c.slide = !c.slide;
             step.assume(c);
-            if (input.repeat.a) self.nextIdx();
+            self.nextIdx();
         },
         .accent => {
             var c = step.copy();
             c.accent = !c.accent;
             step.assume(c);
-            if (input.repeat.a) self.nextIdx();
+            self.nextIdx();
         },
     };
 
@@ -202,12 +211,54 @@ fn prevIdx(self: *@This()) void {
         self.selectedPattern().len - 1;
 }
 
+fn incRight(self: *@This()) void {
+    for (self.idx..self.selectedPattern().length()) |i| {
+        const step = &self.selectedPattern().steps[i];
+        var s = @atomicLoad(BassPattern.Step, step, .seq_cst);
+        if (s.pitch != BassPattern.off) {
+            s.pitch = @min(12, s.pitch + 1);
+            @atomicStore(BassPattern.Step, step, s, .seq_cst);
+        }
+    }
+}
+
+fn decRight(self: *@This()) void {
+    for (self.idx..self.selectedPattern().length()) |i| {
+        const step = &self.selectedPattern().steps[i];
+        var s = @atomicLoad(BassPattern.Step, step, .seq_cst);
+        if (s.pitch != BassPattern.off) {
+            if (s.pitch != 0) s.pitch -= 1;
+            @atomicStore(BassPattern.Step, step, s, .seq_cst);
+        }
+    }
+}
+
+fn rotLeft(self: *@This()) void {
+    const p = self.selectedPattern();
+    const plen = p.length();
+    const first = p.steps[0].copy();
+    for (1..plen) |i| p.steps[i - 1].assume(p.steps[i].copy());
+    p.steps[plen - 1].assume(first);
+}
+
+fn rotRight(self: *@This()) void {
+    const p = self.selectedPattern();
+    const plen = p.length();
+
+    var prev = p.steps[plen - 1].copy();
+    for (0..plen) |i| {
+        const tmp = p.steps[i].copy();
+        p.steps[i].assume(prev);
+        prev = tmp;
+    }
+}
+
 pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool, pi: PlaybackInfo) void {
     const pattern = self.selectedPattern();
     const pattern_len = pattern.length();
     const base = pattern.getBase();
 
-    const on = !active or @mod(self.blink * 4, 1) < 0.5;
+    const on = active and @mod(self.blink * 4, 1) < 0.5;
 
     tm.print(x + 3, y, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
     tm.print(x + 11, y, colors.inactive, "base:{s:-<2}{}", .{

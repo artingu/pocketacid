@@ -22,6 +22,7 @@ pub const Point = c.SDL_Point;
 
 pub const init = c.SDL_Init;
 pub const quit = c.SDL_Quit;
+pub const quitSubSystem = c.SDL_QuitSubSystem;
 pub const free = c.SDL_free;
 pub const renderSetViewport = c.SDL_RenderSetViewport;
 pub const setRenderTarget = c.SDL_SetRenderTarget;
@@ -75,6 +76,8 @@ pub const gameControllerOpen = c.SDL_GameControllerOpen;
 pub const gameControllerClose = c.SDL_GameControllerClose;
 pub const gameControllerName = c.SDL_GameControllerName;
 pub const gameControllerGetJoystick = c.SDL_GameControllerGetJoystick;
+pub const gameControllerAddMapping = c.SDL_GameControllerAddMapping;
+pub const gameControllerMapping = c.SDL_GameControllerMapping;
 pub const joystickInstanceID = c.SDL_JoystickInstanceID;
 
 pub const CONTROLLERDEVICEADDED = c.SDL_CONTROLLERDEVICEADDED;

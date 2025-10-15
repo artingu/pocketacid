@@ -118,6 +118,7 @@ pub fn main() !void {
             }
         }
 
+        if (trig.comboPress("select+start")) break :mainloop;
         if (trig.comboPress("l3")) lj_mode.next();
         if (trig.combo("l+up")) Sys.sound_engine.changeTempo(10);
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);

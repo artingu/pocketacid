@@ -31,6 +31,7 @@ pub fn open(self: *@This(), id: sdl.JoystickID) void {
     c.* = controller;
 
     std.debug.print("added game controller {s}\n", .{sdl.gameControllerName(controller)});
+    std.debug.print("mapping:\n{s}\n", .{sdl.gameControllerMapping(controller)});
 }
 
 pub fn close(self: *@This(), id: sdl.JoystickID) void {
