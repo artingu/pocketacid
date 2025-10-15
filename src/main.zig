@@ -51,6 +51,7 @@ pub fn main() !void {
     var bass_interface = BassInterface{ .bank = &state.bass_patterns };
 
     var lj_mode: JoyMode = .timbre_mod;
+    var rj_mode: JoyMode = .timbre_mod;
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
@@ -89,37 +90,12 @@ pub fn main() !void {
 
         const trig = bh.handle(held, dt);
 
-        {
-            const joy_sensitivity = 0.5;
-            const lx = jh.lx * dt * joy_sensitivity;
-            const ly = jh.ly * dt * joy_sensitivity;
-
-            const lparams = &Sys.sound_engine.pdbass.params;
-
-            switch (lj_mode) {
-                .timbre_mod => {
-                    const prevx = lparams.get(.mod_depth);
-                    const prevy = lparams.get(.timbre);
-                    lparams.set(.mod_depth, @min(1, @max(0, lx + prevx)));
-                    lparams.set(.timbre, @min(1, @max(0, prevy - ly)));
-                },
-                .res_feedback => {
-                    const prevx = lparams.get(.feedback);
-                    const prevy = lparams.get(.res);
-                    lparams.set(.feedback, @min(1, @max(0, lx + prevx)));
-                    lparams.set(.res, @min(1, @max(0, prevy - ly)));
-                },
-                .decay_accent => {
-                    const prevx = lparams.get(.accentness);
-                    const prevy = lparams.get(.decay);
-                    lparams.set(.accentness, @min(1, @max(0, lx + prevx)));
-                    lparams.set(.decay, @min(1, @max(0, prevy - ly)));
-                },
-            }
-        }
+        handleParams(jh.lx, jh.ly, dt, lj_mode, &Sys.sound_engine.pdbass1.params);
+        handleParams(jh.rx, jh.ry, dt, rj_mode, &Sys.sound_engine.pdbass2.params);
 
         if (trig.comboPress("select+start")) break :mainloop;
         if (trig.comboPress("l3")) lj_mode.next();
+        if (trig.comboPress("r3")) rj_mode.next();
         if (trig.combo("l+up")) Sys.sound_engine.changeTempo(10);
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
@@ -131,8 +107,8 @@ pub fn main() !void {
         tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
 
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
-            Sys.sound_engine.bs.playbackInfo(),
-            PlaybackInfo{},
+            Sys.sound_engine.bs1.playbackInfo(),
+            Sys.sound_engine.bs2.playbackInfo(),
             PlaybackInfo{},
         };
 
@@ -152,11 +128,18 @@ pub fn main() !void {
             arranger.display(&tm, 1, 2, 0, false, pi);
         }
 
-        const lxy = lj_mode.values(&Sys.sound_engine.pdbass.params);
-        tm.print(1, 19, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
+        const lxy = lj_mode.values(&Sys.sound_engine.pdbass1.params);
+        tm.print(1, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
             lj_mode.str(),
             lxy.y,
             lxy.x,
+        });
+
+        const rxy = rj_mode.values(&Sys.sound_engine.pdbass2.params);
+        tm.print(20, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
+            rj_mode.str(),
+            rxy.y,
+            rxy.x,
         });
 
         sys.preRender();
@@ -214,3 +197,29 @@ const JoyMode = enum {
         };
     }
 };
+
+fn handleParams(ux: f32, uy: f32, dt: f32, mode: JoyMode, params: *PDBass.Params) void {
+    const joy_sensitivity = 0.5;
+    const x = ux * joy_sensitivity * dt;
+    const y = uy * joy_sensitivity * dt;
+    switch (mode) {
+        .timbre_mod => {
+            const prevx = params.get(.mod_depth);
+            const prevy = params.get(.timbre);
+            params.set(.mod_depth, @min(1, @max(0, x + prevx)));
+            params.set(.timbre, @min(1, @max(0, prevy - y)));
+        },
+        .res_feedback => {
+            const prevx = params.get(.feedback);
+            const prevy = params.get(.res);
+            params.set(.feedback, @min(1, @max(0, x + prevx)));
+            params.set(.res, @min(1, @max(0, prevy - y)));
+        },
+        .decay_accent => {
+            const prevx = params.get(.accentness);
+            const prevy = params.get(.decay);
+            params.set(.accentness, @min(1, @max(0, x + prevx)));
+            params.set(.decay, @min(1, @max(0, prevy - y)));
+        },
+    }
+}
