@@ -26,7 +26,7 @@ pub fn handle(self: *Arranger, input: InputState) void {
     const curval = @atomicLoad(u8, over_addr, .seq_cst);
     if (input.hold.any()) self.blink = 0;
 
-    if (input.press.a or input.press.x) {
+    if (input.press.a) {
         if (curval == 0xff) {
             @atomicStore(u8, over_addr, self.yank, .seq_cst);
             self.changed = true;
@@ -35,17 +35,15 @@ pub fn handle(self: *Arranger, input: InputState) void {
         }
     }
 
-    if (input.release.a or input.release.x) {
+    if (input.release.a) {
         if (!self.changed and curval != 0xff) {
             self.yank = curval;
             @atomicStore(u8, over_addr, 0xff, .seq_cst);
         }
-        if (input.release.a) self.nextRow();
     }
 
     if (input.combo("b")) {
         @atomicStore(u8, over_addr, 0xff, .seq_cst);
-        self.nextRow();
     }
 
     if ((input.combo("a+left") or input.combo("x+left")) and curval != 0xff) {
