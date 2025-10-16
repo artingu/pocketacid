@@ -12,6 +12,7 @@ columns: []const *[256]u8,
 column: usize = 0,
 row: u8 = 0,
 blink: f32 = 0,
+qblink: f32 = 0,
 changed: bool = false,
 yank: u8 = 0,
 
@@ -124,6 +125,7 @@ pub fn display(
     dt: f32,
     active: bool,
     playback_info: []const PlaybackInfo,
+    queued_info: []const ?u8,
 ) void {
     const half_height: isize = height / 2;
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
@@ -136,6 +138,12 @@ pub fn display(
             tm.print(x, y + yoffset, colors.inactive, "{x:0>2}", .{uidx});
 
             for (self.columns, 1..) |column, xoffset| {
+                const row_queued = if (queued_info[xoffset - 1]) |row|
+                    row == uidx
+                else
+                    false;
+                const blink_queued = row_queued and @mod(self.qblink * 4, 1) < 0.5;
+
                 const alter = [_]Attrib{ colors.normal, colors.hilight };
                 const pi = playback_info[xoffset - 1];
 
@@ -146,8 +154,11 @@ pub fn display(
                 else
                     alter[xoffset % 2];
 
-                const blinked = if (on) invert(bc) else bc;
-                const color = if (uidx == self.row and self.column + 1 == xoffset) blinked else bc;
+                const qc = if (blink_queued) colors.playing else bc;
+
+                const blinked = if (on) invert(qc) else qc;
+
+                const color = if (uidx == self.row and self.column + 1 == xoffset) blinked else qc;
 
                 const val = @atomicLoad(u8, &column.*[uidx], .seq_cst);
 
@@ -160,6 +171,7 @@ pub fn display(
     }
 
     self.blink = @mod(self.blink + dt, 1);
+    self.qblink = @mod(self.qblink + dt, 1);
 }
 
 inline fn invert(a: Attrib) Attrib {

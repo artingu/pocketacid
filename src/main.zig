@@ -109,6 +109,12 @@ pub fn main() !void {
             PlaybackInfo{},
         };
 
+        const qi: []const ?u8 = &[_]?u8{
+            Sys.sound_engine.bs1.queued(),
+            Sys.sound_engine.bs2.queued(),
+            null,
+        };
+
         if (arrange) {
             if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
             arranger.handle(trig);
@@ -116,14 +122,14 @@ pub fn main() !void {
                 bass_interface.setPattern(p);
                 bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
             }
-            arranger.display(&tm, 1, 2, dt, true, pi);
+            arranger.display(&tm, 1, 2, dt, true, pi, qi);
         } else {
             if (arranger.selectedPattern()) |p| {
                 bass_interface.handle(trig);
                 bass_interface.setPattern(p);
                 bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
             }
-            arranger.display(&tm, 1, 2, 0, false, pi);
+            arranger.display(&tm, 1, 2, 0, false, pi, qi);
         }
 
         const lxy = lj_mode.values(&Sys.sound_engine.pdbass1.params);

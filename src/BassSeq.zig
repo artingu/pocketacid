@@ -13,11 +13,18 @@ pub const PlaybackInfo = packed struct {
     _: u7 = 0,
 };
 
+const Queued = packed struct {
+    row: u8 = 0,
+    nothing: bool = true,
+    _: u7 = 0,
+};
+
 patterns: *[256]BassPattern,
 arrangement: *[256]u8,
 
 start_arrangement_idx: u8 = 0,
 arrangement_idx: u8 = 0,
+queued_info: Queued = .{},
 
 current_pattern: u8 = 0xff,
 midibuf: ?*MidiBuf = null,
@@ -88,8 +95,10 @@ pub fn tick(self: *BassSeq) void {
                     &self.arrangement[self.arrangement_idx],
                     .seq_cst,
                 );
-                if (cur_pattern == 0xff)
+                if (cur_pattern == 0xff) {
                     self.arrangement_idx = self.start_arrangement_idx;
+                    @atomicStore(Queued, &self.queued_info, .{}, .seq_cst);
+                }
                 self.updateCurrentPattern();
             }
         }
@@ -110,12 +119,25 @@ inline fn updateCurrentPattern(self: *BassSeq) void {
     self.current_pattern = @atomicLoad(u8, &self.arrangement[arr_idx], .seq_cst);
 }
 
-pub inline fn playbackInfo(self: *BassSeq) PlaybackInfo {
+pub inline fn playbackInfo(self: *const BassSeq) PlaybackInfo {
     return @atomicLoad(PlaybackInfo, &self.info, .seq_cst);
 }
 
 pub fn enqueue(self: *BassSeq, idx: u8) void {
     self.start_arrangement_idx = idx;
+    @atomicStore(Queued, &self.queued_info, .{
+        .nothing = false,
+        .row = idx,
+    }, .seq_cst);
+}
+
+pub fn queued(self: *const BassSeq) ?u8 {
+    const q = @atomicLoad(Queued, &self.queued_info, .seq_cst);
+    const pi = self.playbackInfo();
+
+    if (!pi.running) return null;
+    if (q.nothing) return null;
+    return q.row;
 }
 
 pub fn start(self: *BassSeq, idx: u8) void {
@@ -133,4 +155,5 @@ pub fn stop(self: *BassSeq) void {
     self.running = false;
     self.updatePlaybackInfo();
     self.maybeNoteOff();
+    @atomicStore(Queued, &self.queued_info, .{}, .seq_cst);
 }
