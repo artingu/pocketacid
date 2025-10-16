@@ -124,6 +124,7 @@ pub inline fn playbackInfo(self: *const BassSeq) PlaybackInfo {
 }
 
 pub fn enqueue(self: *BassSeq, idx: u8) void {
+    if (@atomicLoad(u8, &self.arrangement.*[idx], .seq_cst) == 0xff) return;
     self.start_arrangement_idx = idx;
     @atomicStore(Queued, &self.queued_info, .{
         .nothing = false,

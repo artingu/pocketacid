@@ -138,11 +138,13 @@ pub fn display(
             tm.print(x, y + yoffset, colors.inactive, "{x:0>2}", .{uidx});
 
             for (self.columns, 1..) |column, xoffset| {
+                const val = @atomicLoad(u8, &column.*[uidx], .seq_cst);
+
                 const row_queued = if (queued_info[xoffset - 1]) |row|
                     row == uidx
                 else
                     false;
-                const blink_queued = row_queued and @mod(self.qblink * 4, 1) < 0.5;
+                const blink_queued = val != 0xff and row_queued and @mod(self.qblink * 4, 1) < 0.5;
 
                 const alter = [_]Attrib{ colors.normal, colors.hilight };
                 const pi = playback_info[xoffset - 1];
@@ -159,8 +161,6 @@ pub fn display(
                 const blinked = if (on) invert(qc) else qc;
 
                 const color = if (uidx == self.row and self.column + 1 == xoffset) blinked else qc;
-
-                const val = @atomicLoad(u8, &column.*[uidx], .seq_cst);
 
                 if (val == 0xff)
                     tm.puts(x + xoffset * 2, y + yoffset, color, "..")
