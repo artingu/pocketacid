@@ -1,29 +1,27 @@
 const std = @import("std");
 
-pub const Size = std.math.IntFittingRange(1, maxlen);
-
 pub const maxlen = 16;
 
 pub const off: u4 = 0xf;
 
-len: Size = 16,
+len: u8 = 16,
 base: u7 = 48,
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 
-pub inline fn length(self: *const @This()) Size {
-    return @atomicLoad(Size, &self.len, .seq_cst);
+pub inline fn length(self: *const @This()) u8 {
+    return @atomicLoad(u8, &self.len, .seq_cst);
 }
 
 pub fn incLength(self: *@This()) void {
-    const len = @atomicLoad(Size, &self.len, .seq_cst);
+    const len = @atomicLoad(u8, &self.len, .seq_cst);
     const new = @min(maxlen, len + 1);
-    @atomicStore(Size, &self.len, new, .seq_cst);
+    @atomicStore(u8, &self.len, new, .seq_cst);
 }
 
 pub fn decLength(self: *@This()) void {
-    const len = @atomicLoad(Size, &self.len, .seq_cst);
-    const new: Size = if (len <= 1) 1 else len - 1;
-    @atomicStore(Size, &self.len, new, .seq_cst);
+    const len = @atomicLoad(u8, &self.len, .seq_cst);
+    const new: u8 = if (len <= 1) 1 else len - 1;
+    @atomicStore(u8, &self.len, new, .seq_cst);
 }
 
 pub fn incBase(self: *@This()) void {
@@ -36,7 +34,7 @@ pub fn decBase(self: *@This()) void {
     if (old > 12) @atomicStore(u7, &self.base, old - 1, .seq_cst);
 }
 
-pub inline fn getBase(self: *@This()) u7 {
+pub inline fn getBase(self: *const @This()) u7 {
     return @atomicLoad(u7, &self.base, .seq_cst);
 }
 

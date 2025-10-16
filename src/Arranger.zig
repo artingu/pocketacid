@@ -9,7 +9,7 @@ const colors = @import("colors.zig");
 const height = 17;
 
 columns: []const *[256]u8,
-column: usize = 0,
+column: u8 = 0,
 row: u8 = 0,
 blink: f32 = 0,
 qblink: f32 = 0,
@@ -111,10 +111,10 @@ inline fn nextColumn(self: *Arranger) void {
 }
 
 inline fn prevColumn(self: *Arranger) void {
-    self.column = if (self.column == 0)
+    self.column = @intCast(if (self.column == 0)
         self.columns.len - 1
     else
-        self.column - 1;
+        self.column - 1);
 }
 
 pub fn display(

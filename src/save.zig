@@ -1,0 +1,226 @@
+const std = @import("std");
+
+const PDBass = @import("PDBass.zig");
+const BassPattern = @import("BassPattern.zig");
+const Arranger = @import("Arranger.zig");
+
+var chunkbuf: [0xffff]u8 = undefined;
+
+pub const ChunkTag = enum {
+    // bass patterns
+    BPAT,
+
+    // bass patches
+    PTC1,
+    PTC2,
+
+    // arrangement columns
+    ARR1,
+    ARR2,
+    ARR3,
+
+    // Arranger state
+    ARRS,
+
+    fn str(self: ChunkTag) [4]u8 {
+        return switch (self) {
+            inline else => |tag| @tagName(tag).*,
+        };
+    }
+};
+
+fn writeChunk(tag: ChunkTag, version: u16, data: []const u8, w: std.io.AnyWriter) !void {
+    if (data.len > 0xffff) return error.TooBigChunk;
+
+    try w.writeAll(&tag.str());
+    try w.writeInt(u16, version, .little);
+    try w.writeInt(u16, @intCast(data.len), .little);
+    try w.writeAll(data);
+}
+
+const ChunkHandle = struct {
+    tag: ChunkTag,
+    version: u16,
+    w: std.io.FixedBufferStream([]u8),
+
+    fn finalize(self: *const ChunkHandle, w: std.io.AnyWriter) !void {
+        try writeChunk(self.tag, self.version, self.w.buffer[0..self.w.pos], w);
+    }
+};
+
+fn beginChunk(tag: ChunkTag, version: u16) ChunkHandle {
+    return .{
+        .tag = tag,
+        .version = version,
+        .w = .{ .buffer = &chunkbuf, .pos = 0 },
+    };
+}
+
+pub fn load(
+    r: std.io.AnyReader,
+    ptc1: *PDBass.Params,
+    ptc2: *PDBass.Params,
+    arr1: *[256]u8,
+    arr2: *[256]u8,
+    arr3: *[256]u8,
+    bpat: *[256]BassPattern,
+    arranger: *Arranger,
+) !void {
+    chunkloop: while (true) {
+        var tagnamebuf: [4]u8 = undefined;
+        r.readNoEof(&tagnamebuf) catch |err| {
+            if (err == error.EndOfStream)
+                break :chunkloop
+            else
+                return err;
+        };
+        const tag = std.meta.stringToEnum(ChunkTag, &tagnamebuf) orelse return error.UnknownTag;
+        const version = try r.readInt(u16, .little);
+        const len = try r.readInt(u16, .little);
+
+        switch (tag) {
+            .ARRS => try readArrangerState(r, arranger, version, len),
+            .BPAT => try readBassPatterns(r, bpat, version, len),
+            .PTC1 => try readPatch(r, ptc1, version, len),
+            .PTC2 => try readPatch(r, ptc2, version, len),
+            .ARR1 => try readArr(r, arr1, version, len),
+            .ARR2 => try readArr(r, arr2, version, len),
+            .ARR3 => try readArr(r, arr3, version, len),
+        }
+    }
+}
+
+fn readArrangerState(r: std.io.AnyReader, arranger: *Arranger, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 2) return error.ArrangerStateBadLen;
+
+            const column = try r.readInt(u8, .little);
+            const row = try r.readInt(u8, .little);
+
+            if (column >= 3) return error.ArrangerStateColumnOutOfRange;
+
+            arranger.column = column;
+            arranger.row = row;
+        },
+        else => return error.ArrangerStateBadVersion,
+    }
+}
+
+fn readBassPatterns(r: std.io.AnyReader, patterns: *[256]BassPattern, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != (2 + BassPattern.maxlen) * 255) return error.BassPatternsBadLen;
+            for (0..255) |i| {
+                try readBassPattern(r, &patterns.*[i]);
+            }
+        },
+        else => return error.BassPatternsBadVersion,
+    }
+}
+
+fn readBassPattern(r: std.io.AnyReader, pattern: *BassPattern) !void {
+    const len = try r.readInt(u8, .little);
+    if (len > 16) return error.BassPatternLenNotInRange;
+    pattern.len = len;
+
+    const base = try r.readInt(u8, .little);
+    if (base > 127) return error.BassPatternBaseNotInRange;
+    pattern.base = @intCast(base);
+
+    for (0..BassPattern.maxlen) |i| {
+        pattern.steps[i] = @bitCast(try r.readInt(u8, .little));
+    }
+}
+
+fn readPatch(r: std.io.AnyReader, params: *PDBass.Params, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 6 * 2) return error.BadPatchLen;
+            params.set(.timbre, try readFloat01(r));
+            params.set(.mod_depth, try readFloat01(r));
+            params.set(.res, try readFloat01(r));
+            params.set(.feedback, try readFloat01(r));
+            params.set(.decay, try readFloat01(r));
+            params.set(.accentness, try readFloat01(r));
+        },
+        else => return error.PatchBadVersion,
+    }
+}
+
+fn readFloat01(r: std.io.AnyReader) !f32 {
+    return @as(f32, @floatFromInt(try r.readInt(u16, .little))) / 0xffff;
+}
+
+fn readArr(r: std.io.AnyReader, arr: *[256]u8, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 256) return error.ArrBadLen;
+            try r.readNoEof(arr);
+        },
+        else => return error.ArrUnknownVersion,
+    }
+}
+
+pub fn save(
+    w: std.io.AnyWriter,
+    ptc1: *const PDBass.Params,
+    ptc2: *const PDBass.Params,
+    arr1: *const [256]u8,
+    arr2: *const [256]u8,
+    arr3: *const [256]u8,
+    bpat: *const [256]BassPattern,
+    arranger: *const Arranger,
+) !void {
+    try writeChunk(.ARR1, 1, arr1, w);
+    try writeChunk(.ARR2, 1, arr2, w);
+    try writeChunk(.ARR3, 1, arr3, w);
+
+    var handle = beginChunk(.BPAT, 1);
+    {
+        const hw = handle.w.writer().any();
+        for (0..255) |i| {
+            const pat = &bpat.*[i];
+
+            try hw.writeInt(u8, pat.length(), .little);
+            try hw.writeInt(u8, pat.getBase(), .little);
+
+            for (0..BassPattern.maxlen) |j| {
+                try hw.writeInt(u8, @bitCast(pat.steps[j]), .little);
+            }
+        }
+        try handle.finalize(w);
+    }
+
+    handle = beginChunk(.PTC1, 1);
+    try writeBassParams(handle.w.writer().any(), ptc1);
+    try handle.finalize(w);
+
+    handle = beginChunk(.PTC2, 1);
+    try writeBassParams(handle.w.writer().any(), ptc2);
+    try handle.finalize(w);
+
+    handle = beginChunk(.ARRS, 1);
+    {
+        const hw = handle.w.writer().any();
+        try hw.writeInt(u8, arranger.column, .little);
+        try hw.writeInt(u8, arranger.row, .little);
+    }
+    try handle.finalize(w);
+}
+
+fn writeBassParams(w: std.io.AnyWriter, params: *const PDBass.Params) !void {
+    try writeParam01(w, params.get(.timbre));
+    try writeParam01(w, params.get(.mod_depth));
+    try writeParam01(w, params.get(.res));
+    try writeParam01(w, params.get(.feedback));
+    try writeParam01(w, params.get(.decay));
+    try writeParam01(w, params.get(.accentness));
+}
+
+fn writeParam01(w: std.io.AnyWriter, val: f32) !void {
+    const capped: f32 = 0xffff * @min(1, @max(0, val));
+    const int: u16 = @intFromFloat(@round(capped));
+
+    try w.writeInt(u16, int, .little);
+}

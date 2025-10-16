@@ -16,26 +16,17 @@ const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
 const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
+const save = @import("save.zig");
 
 const w = 30;
 const h = 22;
+const savename = "state.sav";
 
 pub fn main() !void {
-    var sys = try Sys.init("aseq", w * 8, h * 8);
-    defer sys.cleanup();
-
     var cells: [w * h]CharDisplay.Cell = undefined;
     var last_rendered: [w * h]CharDisplay.Cell = undefined;
     for (0..w * h) |i| last_rendered[i] = .{ .char = 0, .attrib = .{} };
     var tm = TextMatrix{ .w = w, .h = h, .out = &cells };
-    const cd = CharDisplay{
-        .w = w,
-        .h = h,
-        .cells = &cells,
-        .last_rendered = &last_rendered,
-        .out = sys.r,
-        .font = sys.font,
-    };
 
     var arrange = true;
 
@@ -57,6 +48,56 @@ pub fn main() !void {
             &state.bass2_arrange,
             &state.drum_arrange,
         },
+    };
+
+    loadblock: {
+        const cwd = std.fs.cwd();
+        const file = cwd.openFile(savename, .{ .mode = .read_only }) catch |err| {
+            if (err == error.FileNotFound) break :loadblock else return err;
+        };
+        var br = std.io.bufferedReader(file.reader());
+        try save.load(
+            br.reader().any(),
+            &Sys.sound_engine.pdbass1.params,
+            &Sys.sound_engine.pdbass2.params,
+            &state.bass1_arrange,
+            &state.bass2_arrange,
+            &state.drum_arrange,
+            &state.bass_patterns,
+            &arranger,
+        );
+    }
+
+    defer {
+        saveblock: {
+            const cwd = std.fs.cwd();
+            const f = cwd.createFile(savename ++ ".tmp", .{}) catch break :saveblock;
+            const writer = f.writer().any();
+
+            save.save(
+                writer,
+                &Sys.sound_engine.pdbass1.params,
+                &Sys.sound_engine.pdbass2.params,
+                &state.bass1_arrange,
+                &state.bass2_arrange,
+                &state.drum_arrange,
+                &state.bass_patterns,
+                &arranger,
+            ) catch break :saveblock;
+            cwd.rename(savename ++ ".tmp", savename) catch {};
+        }
+    }
+
+    var sys = try Sys.init("aseq", w * 8, h * 8);
+    defer sys.cleanup();
+
+    const cd = CharDisplay{
+        .w = w,
+        .h = h,
+        .cells = &cells,
+        .last_rendered = &last_rendered,
+        .out = sys.r,
+        .font = sys.font,
     };
 
     cm.openAll();
