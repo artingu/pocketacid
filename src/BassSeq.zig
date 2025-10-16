@@ -18,7 +18,6 @@ arrangement: *[256]u8,
 
 start_arrangement_idx: u8 = 0,
 arrangement_idx: u8 = 0,
-next_arrangement_idx: ?u8 = null,
 
 current_pattern: u8 = 0xff,
 midibuf: ?*MidiBuf = null,
@@ -83,10 +82,7 @@ pub fn tick(self: *BassSeq) void {
             self.step = 0;
 
             if (self.current_pattern != 0xff) {
-                if (self.next_arrangement_idx) |next| {
-                    self.arrangement_idx = next;
-                    self.next_arrangement_idx = null;
-                } else self.arrangement_idx +%= 1;
+                self.arrangement_idx +%= 1;
                 const cur_pattern = @atomicLoad(
                     u8,
                     &self.arrangement[self.arrangement_idx],
@@ -118,10 +114,13 @@ pub inline fn playbackInfo(self: *BassSeq) PlaybackInfo {
     return @atomicLoad(PlaybackInfo, &self.info, .seq_cst);
 }
 
+pub fn enqueue(self: *BassSeq, idx: u8) void {
+    self.start_arrangement_idx = idx;
+}
+
 pub fn start(self: *BassSeq, idx: u8) void {
     self.start_arrangement_idx = idx;
     self.arrangement_idx = idx;
-    self.next_arrangement_idx = null;
     self.updateCurrentPattern();
 
     self.step = 0;
@@ -133,6 +132,5 @@ pub fn start(self: *BassSeq, idx: u8) void {
 pub fn stop(self: *BassSeq) void {
     self.running = false;
     self.updatePlaybackInfo();
-    self.next_arrangement_idx = null;
     self.maybeNoteOff();
 }

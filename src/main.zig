@@ -98,10 +98,9 @@ pub fn main() !void {
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
         if (trig.combo("l+left")) Sys.sound_engine.changeTempo(-1);
-        if (trig.press.start) Sys.sound_engine.startstop(arranger.row, arrange);
-        if (trig.press.select) arrange = !arrange;
-        if (Sys.sound_engine.isRunning())
-            tm.putch(0, 0, colors.playing, 0x10);
+        if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
+        if (trig.comboPress("select")) arrange = !arrange;
+        if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
 
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
@@ -111,6 +110,7 @@ pub fn main() !void {
         };
 
         if (arrange) {
+            if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
             arranger.handle(trig);
             if (arranger.selectedPattern()) |p| {
                 bass_interface.setPattern(p);

@@ -87,7 +87,18 @@ pub fn handle(self: *@This(), input: InputState) void {
 
         if (input.repeat.up) self.selectedPattern().incBase();
         if (input.repeat.down) self.selectedPattern().decBase();
+
+        return;
     }
+
+    if (input.hold.x) {
+        if (input.repeat.up) self.incRight();
+        if (input.repeat.down) self.decRight();
+        if (input.repeat.left) self.rotLeft();
+        if (input.repeat.right) self.rotRight();
+        return;
+    }
+
     if (self.row == .pitch) {
         var sc = step.copy();
 
@@ -111,13 +122,6 @@ pub fn handle(self: *@This(), input: InputState) void {
                     step.assume(sc);
                 }
             }
-        }
-
-        if (input.hold.x) {
-            if (input.repeat.up) self.incRight();
-            if (input.repeat.down) self.decRight();
-            if (input.repeat.left) self.rotLeft();
-            if (input.repeat.right) self.rotRight();
         }
 
         if (input.release.a) {

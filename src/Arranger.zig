@@ -53,21 +53,21 @@ pub fn handle(self: *Arranger, input: InputState) void {
         @atomicStore(u8, over_addr, 0xff, .seq_cst);
     }
 
-    if ((input.combo("a+left") or input.combo("x+left")) and curval != 0xff) {
+    if (input.combo("a+left") and curval != 0xff) {
         const newval = curval -| 1;
         @atomicStore(u8, over_addr, newval, .seq_cst);
         self.yank = newval;
         self.changed = true;
     }
 
-    if ((input.combo("a+right") or input.combo("x+right")) and curval < 0xfe) {
+    if (input.combo("a+right") and curval < 0xfe) {
         const newval = curval + 1;
         @atomicStore(u8, over_addr, newval, .seq_cst);
         self.yank = newval;
         self.changed = true;
     }
 
-    if ((input.combo("a+down") or input.combo("x+down")) and curval != 0xff) {
+    if (input.combo("a+down") and curval != 0xff) {
         const newval = if (curval >= 0x10)
             curval - 0x10
         else
@@ -77,7 +77,7 @@ pub fn handle(self: *Arranger, input: InputState) void {
         self.changed = true;
     }
 
-    if ((input.combo("a+up") or input.combo("x+up")) and curval != 0xff) {
+    if ((input.combo("a+up")) and curval != 0xff) {
         const newval = if (curval < 0xef)
             curval + 0x10
         else
