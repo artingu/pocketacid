@@ -10,7 +10,7 @@ pub const PlaybackInfo = packed struct {
     pattern: u8 = 0,
     step: u8 = 0,
     running: bool = false,
-    _: u7 = undefined,
+    _: u7 = 0,
 };
 
 patterns: *[256]BassPattern,
@@ -18,7 +18,7 @@ arrangement: *[256]u8,
 
 start_arrangement_idx: u8 = 0,
 arrangement_idx: u8 = 0,
-// next_arrangement_idx: ?u8 = null,
+next_arrangement_idx: ?u8 = null,
 
 current_pattern: u8 = 0xff,
 midibuf: ?*MidiBuf = null,
@@ -83,18 +83,19 @@ pub fn tick(self: *BassSeq) void {
             self.step = 0;
 
             if (self.current_pattern != 0xff) {
-                var arr_idx = @atomicLoad(u8, &self.arrangement_idx, .seq_cst);
-                arr_idx +%= 1;
-                const cur_pattern = @atomicLoad(u8, &self.arrangement[arr_idx], .seq_cst);
-                arr_idx = if (cur_pattern == 0xff)
-                    self.start_arrangement_idx
-                else
-                    arr_idx;
-                @atomicStore(u8, &self.arrangement_idx, arr_idx, .seq_cst);
+                if (self.next_arrangement_idx) |next| {
+                    self.arrangement_idx = next;
+                    self.next_arrangement_idx = null;
+                } else self.arrangement_idx +%= 1;
+                const cur_pattern = @atomicLoad(
+                    u8,
+                    &self.arrangement[self.arrangement_idx],
+                    .seq_cst,
+                );
+                if (cur_pattern == 0xff)
+                    self.arrangement_idx = self.start_arrangement_idx;
                 self.updateCurrentPattern();
             }
-
-            // if (self.next_arrangement_idx) |next| self.arrangement_idx = next;
         }
     }
 }
@@ -109,7 +110,8 @@ inline fn updatePlaybackInfo(self: *BassSeq) void {
 }
 
 inline fn updateCurrentPattern(self: *BassSeq) void {
-    self.current_pattern = @atomicLoad(u8, &self.arrangement[self.arrangement_idx], .seq_cst);
+    const arr_idx = self.arrangement_idx;
+    self.current_pattern = @atomicLoad(u8, &self.arrangement[arr_idx], .seq_cst);
 }
 
 pub inline fn playbackInfo(self: *BassSeq) PlaybackInfo {
@@ -119,7 +121,7 @@ pub inline fn playbackInfo(self: *BassSeq) PlaybackInfo {
 pub fn start(self: *BassSeq, idx: u8) void {
     self.start_arrangement_idx = idx;
     self.arrangement_idx = idx;
-    // self.next_idx = null;
+    self.next_arrangement_idx = null;
     self.updateCurrentPattern();
 
     self.step = 0;
@@ -131,5 +133,6 @@ pub fn start(self: *BassSeq, idx: u8) void {
 pub fn stop(self: *BassSeq) void {
     self.running = false;
     self.updatePlaybackInfo();
+    self.next_arrangement_idx = null;
     self.maybeNoteOff();
 }

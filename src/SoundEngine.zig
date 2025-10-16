@@ -23,23 +23,33 @@ bs2: BassSeq = .{
 pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
 pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
 
+runcmd: RunCmd = .{ .iscmd = false },
+
 running: bool = false,
 toggle_running: bool = false,
+
+const RunCmd = packed struct {
+    row: u8 = 0,
+    arrange: bool = false,
+    iscmd: bool = true,
+    _: u6 = 0,
+};
 
 pub fn everyBuffer(self: *@This()) void {
     if (self.bs1.midibuf == null) self.bs1.midibuf = self.midibuf;
     if (self.bs2.midibuf == null) self.bs2.midibuf = self.midibuf;
-    if (@atomicRmw(bool, &self.toggle_running, .Xchg, false, .seq_cst)) {
-        if (self.running) {
+    const runcmd = @atomicRmw(RunCmd, &self.runcmd, .Xchg, .{ .iscmd = false }, .seq_cst);
+    if (runcmd.iscmd) {
+        const running = @atomicLoad(bool, &self.running, .seq_cst);
+        if (running) {
             @atomicStore(bool, &self.running, false, .seq_cst);
             self.bs1.stop();
             self.bs2.stop();
         } else {
-            const startrow = @atomicLoad(u8, &self.startrow, .seq_cst);
             @atomicStore(bool, &self.running, true, .seq_cst);
             self.phase = 1;
-            self.bs1.start(startrow);
-            self.bs2.start(startrow);
+            self.bs1.start(runcmd.row);
+            self.bs2.start(runcmd.row);
         }
     }
 
@@ -79,9 +89,11 @@ pub inline fn changeTempo(self: *@This(), change: f32) void {
     @atomicStore(f32, &self.bpm, new, .seq_cst);
 }
 
-pub fn startstop(self: *@This(), startrow: u8) void {
-    @atomicStore(u8, &self.startrow, startrow, .seq_cst);
-    @atomicStore(bool, &self.toggle_running, true, .seq_cst);
+pub fn startstop(self: *@This(), row: u8, arrange: bool) void {
+    @atomicStore(RunCmd, &self.runcmd, .{
+        .row = row,
+        .arrange = arrange,
+    }, .seq_cst);
 }
 
 pub fn isRunning(self: *@This()) bool {

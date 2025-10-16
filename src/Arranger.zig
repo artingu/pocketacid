@@ -22,6 +22,12 @@ pub inline fn selectedPattern(self: *const Arranger) ?u8 {
     return curval;
 }
 
+pub fn rowEmpty(self: *const Arranger, row: i8) bool {
+    for (self.columns) |column|
+        if (column.*[row] != 0xff) return false;
+    return true;
+}
+
 pub fn handle(self: *Arranger, input: InputState) void {
     const over_addr = &self.columns[self.column].*[self.row];
     const curval = @atomicLoad(u8, over_addr, .seq_cst);

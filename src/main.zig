@@ -6,7 +6,6 @@ const colors = @import("colors.zig");
 const Sys = @import("Sys.zig");
 const TextMatrix = @import("TextMatrix.zig");
 const CharDisplay = @import("CharDisplay.zig");
-const RGB = @import("RGB.zig");
 const ButtonHandler = @import("ButtonHandler.zig");
 const ControllerManager = @import("ControllerManager.zig");
 const ButtonState = ButtonHandler.ButtonState;
@@ -99,7 +98,7 @@ pub fn main() !void {
         if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
         if (trig.combo("l+left")) Sys.sound_engine.changeTempo(-1);
-        if (trig.press.start) Sys.sound_engine.startstop(arranger.row);
+        if (trig.press.start) Sys.sound_engine.startstop(arranger.row, arrange);
         if (trig.press.select) arrange = !arrange;
         if (Sys.sound_engine.isRunning())
             tm.putch(0, 0, colors.playing, 0x10);
