@@ -16,6 +16,7 @@ const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
 const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
+const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
 
 const w = 30;
@@ -66,6 +67,8 @@ pub fn main() !void {
             &state.bass_patterns,
             &arranger,
             &Sys.sound_engine.bpm,
+            &lj_mode,
+            &rj_mode,
         );
     }
 
@@ -85,6 +88,8 @@ pub fn main() !void {
                 &state.bass_patterns,
                 &arranger,
                 Sys.sound_engine.bpm,
+                lj_mode,
+                rj_mode,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
@@ -194,56 +199,6 @@ pub fn main() !void {
         sys.postRender();
     }
 }
-
-const JoyMode = enum {
-    timbre_mod,
-    res_feedback,
-    decay_accent,
-
-    const Pair = struct {
-        x: u8,
-        y: u8,
-    };
-
-    fn next(self: *JoyMode) void {
-        self.* = switch (self.*) {
-            .timbre_mod => .res_feedback,
-            .res_feedback => .decay_accent,
-            .decay_accent => .timbre_mod,
-        };
-    }
-
-    fn str(self: JoyMode) []const u8 {
-        return switch (self) {
-            .timbre_mod => "t/m",
-            .res_feedback => "r/f",
-            .decay_accent => "d/a",
-        };
-    }
-
-    fn values(self: JoyMode, params: *const PDBass.Params) Pair {
-        const FloatPair = struct { x: f32, y: f32 };
-        const v: FloatPair = switch (self) {
-            .timbre_mod => .{
-                .y = params.get(.timbre),
-                .x = params.get(.mod_depth),
-            },
-            .res_feedback => .{
-                .y = params.get(.res),
-                .x = params.get(.feedback),
-            },
-            .decay_accent => .{
-                .y = params.get(.decay),
-                .x = params.get(.accentness),
-            },
-        };
-
-        return .{
-            .x = @intFromFloat(@round(v.x * 0xff)),
-            .y = @intFromFloat(@round(v.y * 0xff)),
-        };
-    }
-};
 
 fn handleParams(ux: f32, uy: f32, dt: f32, mode: JoyMode, params: *PDBass.Params) void {
     const joy_sensitivity = 0.5;

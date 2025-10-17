@@ -3,6 +3,7 @@ const std = @import("std");
 const PDBass = @import("PDBass.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
+const JoyMode = @import("JoyMode.zig").JoyMode;
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -24,6 +25,9 @@ pub const ChunkTag = enum {
 
     // Tempo
     TMPO,
+
+    // Joystick modes
+    JOYM,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -69,6 +73,8 @@ pub fn load(
     bpat: *[256]BassPattern,
     arranger: *Arranger,
     tempo: *f32,
+    leftjoymode: *JoyMode,
+    rightjoymode: *JoyMode,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -91,7 +97,25 @@ pub fn load(
             .ARR2 => try readArr(r, arr2, version, len),
             .ARR3 => try readArr(r, arr3, version, len),
             .TMPO => try readTempo(r, tempo, version, len),
+            .JOYM => try readJoyModes(r, leftjoymode, rightjoymode, version, len),
         }
+    }
+}
+
+fn readJoyModes(r: std.io.AnyReader, left: *JoyMode, right: *JoyMode, version: u16, len: u16) !void {
+    try readJoyMode(r, left, version, len);
+    try readJoyMode(r, right, version, len);
+}
+
+fn readJoyMode(r: std.io.AnyReader, jm: *JoyMode, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 4) return error.JoyModeBadLen;
+            var modestr: [2]u8 = undefined;
+            try r.readNoEof(&modestr);
+            jm.* = try JoyMode.fromShort(&modestr);
+        },
+        else => return error.JoyModeBadVersion,
     }
 }
 
@@ -188,6 +212,8 @@ pub fn save(
     bpat: *const [256]BassPattern,
     arranger: *const Arranger,
     tempo: f32,
+    leftjoymode: JoyMode,
+    rightjoymode: JoyMode,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -230,6 +256,14 @@ pub fn save(
         const hw = handle.w.writer().any();
         const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, tempo))));
         try hw.writeInt(u16, int_tempo, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.JOYM, 1);
+    {
+        const hw = handle.w.writer().any();
+        _ = try hw.write(leftjoymode.toShort());
+        _ = try hw.write(rightjoymode.toShort());
     }
     try handle.finalize(w);
 }
