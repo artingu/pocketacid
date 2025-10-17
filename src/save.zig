@@ -22,6 +22,9 @@ pub const ChunkTag = enum {
     // Arranger state
     ARRS,
 
+    // Tempo
+    TMPO,
+
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
             inline else => |tag| @tagName(tag).*,
@@ -65,6 +68,7 @@ pub fn load(
     arr3: *[256]u8,
     bpat: *[256]BassPattern,
     arranger: *Arranger,
+    tempo: *f32,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -86,7 +90,19 @@ pub fn load(
             .ARR1 => try readArr(r, arr1, version, len),
             .ARR2 => try readArr(r, arr2, version, len),
             .ARR3 => try readArr(r, arr3, version, len),
+            .TMPO => try readTempo(r, tempo, version, len),
         }
+    }
+}
+
+fn readTempo(r: std.io.AnyReader, tempo: *f32, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 2) return error.TempoBadLen;
+            const uint_tempo = try r.readInt(u16, .little);
+            tempo.* = @floatFromInt(uint_tempo);
+        },
+        else => return error.TempoBadVersion,
     }
 }
 
@@ -171,6 +187,7 @@ pub fn save(
     arr3: *const [256]u8,
     bpat: *const [256]BassPattern,
     arranger: *const Arranger,
+    tempo: f32,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -205,6 +222,14 @@ pub fn save(
         const hw = handle.w.writer().any();
         try hw.writeInt(u8, arranger.column, .little);
         try hw.writeInt(u8, arranger.row, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.TMPO, 1);
+    {
+        const hw = handle.w.writer().any();
+        const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, tempo))));
+        try hw.writeInt(u16, int_tempo, .little);
     }
     try handle.finalize(w);
 }

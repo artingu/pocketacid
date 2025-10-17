@@ -65,6 +65,7 @@ pub fn main() !void {
             &state.drum_arrange,
             &state.bass_patterns,
             &arranger,
+            &Sys.sound_engine.bpm,
         );
     }
 
@@ -83,6 +84,7 @@ pub fn main() !void {
                 &state.drum_arrange,
                 &state.bass_patterns,
                 &arranger,
+                Sys.sound_engine.bpm,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
