@@ -1,6 +1,7 @@
 const PDBass = @import("PDBass.zig");
 const BassSeq = @import("BassSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
+const Mixer = @import("Mixer.zig");
 
 const maxtempo = 300;
 const mintempo = 1;
@@ -24,6 +25,11 @@ pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
 pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
 
 cmd: Cmd = .{},
+
+mixer: Mixer = .{ .channels = .{
+    .{ .label = "B1", .pan = 0x70 },
+    .{ .label = "B2", .pan = 0x90 },
+} },
 
 running: bool = false,
 toggle_running: bool = false,
@@ -67,7 +73,7 @@ pub fn everyBuffer(self: *@This()) void {
     }
 }
 
-pub fn next(self: *@This(), srate: f32) f32 {
+pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     const bpm = self.getTempo();
 
     self.phase += 24 * bpm / (60 * srate);
@@ -80,7 +86,12 @@ pub fn next(self: *@This(), srate: f32) f32 {
         self.pdbass1.handleMidiEvent(event);
         self.pdbass2.handleMidiEvent(event);
     }
-    return self.pdbass1.next(srate) * 0.5 + self.pdbass2.next(srate) * 0.5;
+
+    // TODO better way of naming channel indices
+    self.mixer.channels[0].in = self.pdbass1.next(srate);
+    self.mixer.channels[1].in = self.pdbass2.next(srate);
+
+    return self.mixer.mix();
 }
 
 pub inline fn getTempo(self: *@This()) f32 {

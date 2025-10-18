@@ -28,8 +28,9 @@ fn audiocb(data: ?*anyopaque, stream: [*c]u8, byte_len: c_int) callconv(.C) void
 
     // Fill the buffer with silence
     for (buf) |*f| {
-        f.left = sound_engine.next(srate);
-        f.right = f.left;
+        const frame = sound_engine.next(srate);
+        f.left = frame.left;
+        f.right = frame.right;
     }
 }
 
