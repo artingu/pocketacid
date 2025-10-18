@@ -18,6 +18,7 @@ const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
+const MixerInterface = @import("MixerInterface.zig");
 
 const w = 30;
 const h = 22;
@@ -30,6 +31,7 @@ pub fn main() !void {
     var tm = TextMatrix{ .w = w, .h = h, .out = &cells };
 
     var arrange = true;
+    var mixer = false;
 
     var last_t = sdl.getPerformanceCounter();
     const perf_freq: f64 = @floatFromInt(sdl.getPerformanceFrequency());
@@ -42,6 +44,8 @@ pub fn main() !void {
 
     var lj_mode: JoyMode = .timbre_mod;
     var rj_mode: JoyMode = .timbre_mod;
+
+    var mixer_interface = MixerInterface{ .mixer = &Sys.sound_engine.mixer };
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
@@ -139,6 +143,7 @@ pub fn main() !void {
         handleParams(jh.lx, jh.ly, dt, lj_mode, &Sys.sound_engine.pdbass1.params);
         handleParams(jh.rx, jh.ry, dt, rj_mode, &Sys.sound_engine.pdbass2.params);
 
+        if (trig.comboPress("r")) mixer = !mixer;
         if (trig.comboPress("select+start")) break :mainloop;
         if (trig.comboPress("l3")) lj_mode.next();
         if (trig.comboPress("r3")) rj_mode.next();
@@ -147,7 +152,6 @@ pub fn main() !void {
         if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
         if (trig.combo("l+left")) Sys.sound_engine.changeTempo(-1);
         if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
-        if (trig.comboPress("select")) arrange = !arrange;
         if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
 
@@ -163,36 +167,42 @@ pub fn main() !void {
             null,
         };
 
-        if (arrange) {
-            if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
-            arranger.handle(trig);
-            if (arranger.selectedPattern()) |p| {
-                bass_interface.setPattern(p);
-                bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
-            }
-            arranger.display(&tm, 1, 2, dt, true, pi, qi);
+        if (mixer) {
+            mixer_interface.handle(trig);
+            mixer_interface.display(&tm, 1, 1, dt);
         } else {
-            if (arranger.selectedPattern()) |p| {
-                bass_interface.handle(trig);
-                bass_interface.setPattern(p);
-                bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+            if (trig.comboPress("select")) arrange = !arrange;
+            if (arrange) {
+                if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
+                arranger.handle(trig);
+                if (arranger.selectedPattern()) |p| {
+                    bass_interface.setPattern(p);
+                    bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                }
+                arranger.display(&tm, 1, 2, dt, true, pi, qi);
+            } else {
+                if (arranger.selectedPattern()) |p| {
+                    bass_interface.handle(trig);
+                    bass_interface.setPattern(p);
+                    bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                }
+                arranger.display(&tm, 1, 2, 0, false, pi, qi);
             }
-            arranger.display(&tm, 1, 2, 0, false, pi, qi);
+
+            const lxy = lj_mode.values(&Sys.sound_engine.pdbass1.params);
+            tm.print(1, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
+                lj_mode.str(),
+                lxy.y,
+                lxy.x,
+            });
+
+            const rxy = rj_mode.values(&Sys.sound_engine.pdbass2.params);
+            tm.print(20, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
+                rj_mode.str(),
+                rxy.y,
+                rxy.x,
+            });
         }
-
-        const lxy = lj_mode.values(&Sys.sound_engine.pdbass1.params);
-        tm.print(1, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
-            lj_mode.str(),
-            lxy.y,
-            lxy.x,
-        });
-
-        const rxy = rj_mode.values(&Sys.sound_engine.pdbass2.params);
-        tm.print(20, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
-            rj_mode.str(),
-            rxy.y,
-            rxy.x,
-        });
 
         sys.preRender();
         cd.flush();

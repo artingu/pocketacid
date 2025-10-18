@@ -41,7 +41,7 @@ const Channel = struct {
     }
 };
 
-channels: [2]Channel,
+channels: [8]Channel,
 
 pub fn mix(self: *Mixer) Frame {
     var out = Frame{};

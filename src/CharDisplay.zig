@@ -11,6 +11,10 @@ font: *sdl.Texture,
 pub const Attrib = packed struct {
     fg: RGB = RGB.init(0, 0, 0),
     bg: RGB = RGB.init(0, 0, 0),
+
+    pub inline fn invert(self: Attrib) Attrib {
+        return .{ .fg = self.bg, .bg = self.fg };
+    }
 };
 
 pub const Cell = packed struct {

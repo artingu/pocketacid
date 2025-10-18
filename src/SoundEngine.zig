@@ -29,6 +29,12 @@ cmd: Cmd = .{},
 mixer: Mixer = .{ .channels = .{
     .{ .label = "B1", .pan = 0x70 },
     .{ .label = "B2", .pan = 0x90 },
+    .{ .label = "bd" },
+    .{ .label = "sd" },
+    .{ .label = "cp" },
+    .{ .label = "hh" },
+    .{ .label = "tm" },
+    .{ .label = "cy" },
 } },
 
 running: bool = false,

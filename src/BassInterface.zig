@@ -277,7 +277,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
         else
             colors.normal;
         const notesidx = (i + base) % 12;
-        const color = if (notes[notesidx].inv) basecolor else invert(basecolor);
+        const color = if (notes[notesidx].inv) basecolor else basecolor.invert();
         tm.puts(x, y + 13 - i, color, notes[notesidx].str);
     }
     tm.putch(x + 1, y + 15, colors.normal, '+');
@@ -292,17 +292,13 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     self.blink = @mod(self.blink + dt, 1);
 }
 
-inline fn invert(a: Attrib) Attrib {
-    return .{ .fg = a.bg, .bg = a.fg };
-}
-
 fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize, active: bool, blink: bool, playing: bool) void {
     const pattern = self.bank[self.pattern_idx];
     const step = pattern.steps[idx].copy();
     const selected = idx == self.idx;
     const hilight: Attrib = if (@as(usize, idx & 0x3) == 0) colors.hilight else colors.normal;
     const color: Attrib = if (playing) colors.playing else if (active) hilight else colors.inactive;
-    const blinked = if (blink and selected) invert(color) else color;
+    const blinked = if (blink and selected) color.invert() else color;
 
     // Pitches
     for (0..13) |i| {
