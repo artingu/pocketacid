@@ -34,6 +34,10 @@ pub const ChunkTag = enum {
     // Mixer editor state
     MXED,
 
+    // Mixer rows
+    MXLV,
+    MXPA,
+
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
             inline else => |tag| @tagName(tag).*,
@@ -105,18 +109,46 @@ pub fn load(
             .ARR3 => try readArr(r, arr3, version, len),
             .TMPO => try readTempo(r, tempo, version, len),
             .JOYM => try readJoyModes(r, leftjoymode, rightjoymode, version, len),
-            .MXED => try readMixerEditorState(r, mixer_editor, mixer, version, len),
+            .MXED => try readMixerEditorState(r, mixer_editor, version, len),
+            .MXLV => try readMixerLvls(r, mixer, version, len),
+            .MXPA => try readMixerPans(r, mixer, version, len),
         }
     }
 }
 
-fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerInterface, mixer: *const Mixer, version: u16, len: u16) !void {
+fn readMixerLvls(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != Mixer.nchannels) return error.MixerLevelsBadLen;
+
+            for (0..Mixer.nchannels) |i| {
+                mixer.channels[i].level = try r.readInt(u8, .little);
+            }
+        },
+        else => return error.MixerLevelsBadVersion,
+    }
+}
+
+fn readMixerPans(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != Mixer.nchannels) return error.MixerPansBadLen;
+
+            for (0..Mixer.nchannels) |i| {
+                mixer.channels[i].pan = try r.readInt(u8, .little);
+            }
+        },
+        else => return error.MixerPansBadVersion,
+    }
+}
+
+fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerInterface, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != 2) return error.MixerEditorStateBadLen;
 
             const channel = try r.readInt(u8, .little);
-            if (channel >= mixer.channels.len)
+            if (channel >= Mixer.nchannels)
                 return error.MixerEditorStateBadChannel;
             mixer_editor.selected_channel = channel;
 
@@ -245,6 +277,7 @@ pub fn save(
     leftjoymode: JoyMode,
     rightjoymode: JoyMode,
     mixer_editor: *const MixerInterface,
+    mixer: *const Mixer,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -309,6 +342,22 @@ pub fn save(
             .pan => 'p',
         };
         try hw.writeInt(u8, row_ch, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.MXLV, 1);
+    {
+        const hw = handle.w.writer().any();
+
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].level, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.MXPA, 1);
+    {
+        const hw = handle.w.writer().any();
+
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].pan, .little);
     }
     try handle.finalize(w);
 }

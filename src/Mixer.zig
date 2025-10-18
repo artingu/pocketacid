@@ -5,6 +5,8 @@ pub const Channels = struct {
     pub const bass2 = 1;
 };
 
+pub const nchannels = 8;
+
 const Mixer = @This();
 
 pub const Frame = struct {
@@ -41,7 +43,7 @@ const Channel = struct {
     }
 };
 
-channels: [8]Channel,
+channels: [nchannels]Channel,
 
 pub fn mix(self: *Mixer) Frame {
     var out = Frame{};

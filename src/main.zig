@@ -97,6 +97,7 @@ pub fn main() !void {
                 lj_mode,
                 rj_mode,
                 &mixer_editor,
+                &Sys.sound_engine.mixer,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
