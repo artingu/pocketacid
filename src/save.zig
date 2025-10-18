@@ -4,6 +4,8 @@ const PDBass = @import("PDBass.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
+const MixerInterface = @import("MixerInterface.zig");
+const Mixer = @import("Mixer.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -28,6 +30,9 @@ pub const ChunkTag = enum {
 
     // Joystick modes
     JOYM,
+
+    // Mixer editor state
+    MXED,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -75,6 +80,8 @@ pub fn load(
     tempo: *f32,
     leftjoymode: *JoyMode,
     rightjoymode: *JoyMode,
+    mixer_editor: *MixerInterface,
+    mixer: *Mixer,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -98,7 +105,29 @@ pub fn load(
             .ARR3 => try readArr(r, arr3, version, len),
             .TMPO => try readTempo(r, tempo, version, len),
             .JOYM => try readJoyModes(r, leftjoymode, rightjoymode, version, len),
+            .MXED => try readMixerEditorState(r, mixer_editor, mixer, version, len),
         }
+    }
+}
+
+fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerInterface, mixer: *const Mixer, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 2) return error.MixerEditorStateBadLen;
+
+            const channel = try r.readInt(u8, .little);
+            if (channel >= mixer.channels.len)
+                return error.MixerEditorStateBadChannel;
+            mixer_editor.selected_channel = channel;
+
+            const row_ch = try r.readInt(u8, .little);
+            switch (row_ch) {
+                'l' => mixer_editor.selected_row = .lvl,
+                'p' => mixer_editor.selected_row = .pan,
+                else => return error.MixerEditorStateBadRow,
+            }
+        },
+        else => return error.MixerEditorStateBadVersion,
     }
 }
 
@@ -111,6 +140,7 @@ fn readJoyMode(r: std.io.AnyReader, jm: *JoyMode, version: u16, len: u16) !void 
     switch (version) {
         1 => {
             if (len != 4) return error.JoyModeBadLen;
+
             var modestr: [2]u8 = undefined;
             try r.readNoEof(&modestr);
             jm.* = try JoyMode.fromShort(&modestr);
@@ -214,6 +244,7 @@ pub fn save(
     tempo: f32,
     leftjoymode: JoyMode,
     rightjoymode: JoyMode,
+    mixer_editor: *const MixerInterface,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -264,6 +295,20 @@ pub fn save(
         const hw = handle.w.writer().any();
         _ = try hw.write(leftjoymode.toShort());
         _ = try hw.write(rightjoymode.toShort());
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.MXED, 1);
+    {
+        const hw = handle.w.writer().any();
+
+        try hw.writeInt(u8, mixer_editor.selected_channel, .little);
+
+        const row_ch: u8 = switch (mixer_editor.selected_row) {
+            .lvl => 'l',
+            .pan => 'p',
+        };
+        try hw.writeInt(u8, row_ch, .little);
     }
     try handle.finalize(w);
 }

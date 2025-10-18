@@ -45,7 +45,7 @@ pub fn main() !void {
     var lj_mode: JoyMode = .timbre_mod;
     var rj_mode: JoyMode = .timbre_mod;
 
-    var mixer_interface = MixerInterface{ .mixer = &Sys.sound_engine.mixer };
+    var mixer_editor = MixerInterface{ .mixer = &Sys.sound_engine.mixer };
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
@@ -73,6 +73,8 @@ pub fn main() !void {
             &Sys.sound_engine.bpm,
             &lj_mode,
             &rj_mode,
+            &mixer_editor,
+            &Sys.sound_engine.mixer,
         );
     }
 
@@ -94,6 +96,7 @@ pub fn main() !void {
                 Sys.sound_engine.bpm,
                 lj_mode,
                 rj_mode,
+                &mixer_editor,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
@@ -168,8 +171,8 @@ pub fn main() !void {
         };
 
         if (mixer) {
-            mixer_interface.handle(trig);
-            mixer_interface.display(&tm, 1, 1, dt);
+            mixer_editor.handle(trig);
+            mixer_editor.display(&tm, 1, 1, dt);
         } else {
             if (trig.comboPress("select")) arrange = !arrange;
             if (arrange) {
