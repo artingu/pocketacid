@@ -13,7 +13,7 @@ const BassEditor = @import("BassEditor.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
-const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
+const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
@@ -184,11 +184,11 @@ pub fn main() !void {
                     switch (arranger.column) {
                         0, 1 => {
                             bass_editor.setPattern(p);
-                            bass_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                            bass_editor.display(&tm, 10, 1, dt, false, pi[arranger.column]);
                         },
                         2 => {
                             drum_editor.setPattern(p);
-                            drum_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                            drum_editor.display(&tm, 10, 1, dt, false, pi[arranger.column]);
                         },
                         else => {},
                     }
@@ -198,13 +198,14 @@ pub fn main() !void {
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {
-                            bass_editor.handle(trig);
                             bass_editor.setPattern(p);
+                            bass_editor.handle(trig);
                             bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
                         },
                         2 => {
                             drum_editor.setPattern(p);
-                            drum_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                            drum_editor.handle(trig);
+                            drum_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
                         },
                         else => {},
                     }

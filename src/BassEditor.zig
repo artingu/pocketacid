@@ -4,7 +4,7 @@ const Step = BassPattern.Step;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
 const colors = @import("colors.zig");
-const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
+const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 
 const NoteInfo = struct {
     str: []const u8,

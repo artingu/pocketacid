@@ -4,14 +4,7 @@ const MidiBuf = @import("MidiBuf.zig");
 const BassSeq = @This();
 const midi = @import("midi.zig");
 const state = @import("state.zig");
-
-pub const PlaybackInfo = packed struct {
-    arrangement_row: u8 = 0,
-    pattern: u8 = 0,
-    step: u8 = 0,
-    running: bool = false,
-    _: u7 = 0,
-};
+const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 
 const Queued = packed struct {
     row: u8 = 0,

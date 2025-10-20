@@ -1,7 +1,7 @@
 const Arranger = @This();
 
 const Attrib = @import("CharDisplay.zig").Attrib;
-const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
+const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
 const colors = @import("colors.zig");

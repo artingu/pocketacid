@@ -2,7 +2,20 @@ const std = @import("std");
 
 pub const maxlen = 16;
 
-pub const DrumStep = packed struct(u16) {
+pub const types = [_]DrumType{
+    .bd,
+    .sd,
+    .ch,
+    .oh,
+    .lt,
+    .ht,
+    .cy,
+    .xx,
+    .yy,
+    .ac,
+};
+
+pub const Step = packed struct(u16) {
     bd: bool = false,
     sd: bool = false,
     ch: bool = false,
@@ -12,23 +25,28 @@ pub const DrumStep = packed struct(u16) {
     cy: bool = false,
     xx: bool = false,
     yy: bool = false,
-    accent: bool = false,
+    ac: bool = false,
 
     _: u6 = 0,
 
-    pub fn get(self: *const DrumStep, t: DrumType) bool {
-        const copy = @atomicLoad(DrumStep, self, .seq_cst);
+    pub fn get(self: *const Step, t: DrumType) bool {
+        const copy = @atomicLoad(Step, self, .seq_cst);
         return switch (t) {
             inline else => |v| @field(copy, @tagName(v)),
         };
     }
 
-    pub fn set(self: *DrumStep, t: DrumType, value: bool) void {
-        var copy = @atomicLoad(DrumStep, self, .seq_cst);
+    pub fn set(self: *Step, t: DrumType, value: bool) void {
+        var copy = @atomicLoad(Step, self, .seq_cst);
         switch (t) {
             inline else => |v| @field(copy, @tagName(v)) = value,
         }
-        @atomicStore(DrumStep, self, copy, .seq_cst);
+        @atomicStore(Step, self, copy, .seq_cst);
+    }
+
+    pub fn toggle(self: *Step, t: DrumType) void {
+        const v = self.get(t);
+        self.set(t, !v);
     }
 };
 
@@ -42,20 +60,13 @@ pub const DrumType = enum {
     cy,
     xx,
     yy,
-    accent,
+    ac,
 
-    pub const types = [_]DrumType{
-        .bd,
-        .sd,
-        .ch,
-        .oh,
-        .lt,
-        .ht,
-        .cy,
-        .xx,
-        .yy,
-        .accent,
-    };
+    pub fn str(self: DrumType) []const u8 {
+        return switch (self) {
+            inline else => |v| return @tagName(v),
+        };
+    }
 
     pub fn next(self: *DrumType) void {
         self.* = switch (self.*) {
@@ -67,13 +78,14 @@ pub const DrumType = enum {
             .ht => .cy,
             .cy => .xx,
             .xx => .yy,
-            .yy => .bd,
+            .yy => .ac,
+            .ac => .bd,
         };
     }
 
     pub fn prev(self: *DrumType) void {
         self.* = switch (self.*) {
-            .bd => .yy,
+            .bd => .ac,
             .sd => .bd,
             .ch => .sd,
             .oh => .ch,
@@ -82,11 +94,12 @@ pub const DrumType = enum {
             .cy => .ht,
             .xx => .cy,
             .yy => .xx,
+            .ac => .yy,
         };
     }
 };
 
-bd: [maxlen]DrumStep = [1]DrumStep{.{}} ** maxlen,
+steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 len: u8 = maxlen,
 
 pub fn incLength(self: *@This()) void {
@@ -105,10 +118,10 @@ pub inline fn length(self: *const @This()) u8 {
     return @atomicLoad(u8, &self.len, .seq_cst);
 }
 
-test DrumStep {
+test Step {
     const t = std.testing;
 
-    var x = DrumStep{};
+    var x = Step{};
 
     x.set(.sd, true);
     try t.expect(x.get(.sd));
