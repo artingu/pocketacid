@@ -5,7 +5,7 @@ pub const Channels = struct {
     pub const bass2 = 1;
 };
 
-pub const nchannels = 8;
+pub const nchannels = 9;
 
 const Mixer = @This();
 

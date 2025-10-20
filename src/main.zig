@@ -19,6 +19,7 @@ const PDBass = @import("PDBass.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
 const MixerInterface = @import("MixerInterface.zig");
+const DrumEditor = @import("DrumEditor.zig");
 
 const w = 30;
 const h = 22;
@@ -41,6 +42,7 @@ pub fn main() !void {
     var bh = ButtonHandler{};
     var cm = ControllerManager{};
     var bass_interface = BassInterface{ .bank = &state.bass_patterns };
+    var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
 
     var lj_mode: JoyMode = .timbre_mod;
     var rj_mode: JoyMode = .timbre_mod;
@@ -180,15 +182,33 @@ pub fn main() !void {
                 if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
                 arranger.handle(trig);
                 if (arranger.selectedPattern()) |p| {
-                    bass_interface.setPattern(p);
-                    bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                    switch (arranger.column) {
+                        0, 1 => {
+                            bass_interface.setPattern(p);
+                            bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                        },
+                        2 => {
+                            drum_editor.setPattern(p);
+                            drum_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                        },
+                        else => {},
+                    }
                 }
                 arranger.display(&tm, 1, 2, dt, true, pi, qi);
             } else {
                 if (arranger.selectedPattern()) |p| {
-                    bass_interface.handle(trig);
-                    bass_interface.setPattern(p);
-                    bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                    switch (arranger.column) {
+                        0, 1 => {
+                            bass_interface.handle(trig);
+                            bass_interface.setPattern(p);
+                            bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                        },
+                        2 => {
+                            drum_editor.setPattern(p);
+                            drum_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                        },
+                        else => {},
+                    }
                 }
                 arranger.display(&tm, 1, 2, 0, false, pi, qi);
             }

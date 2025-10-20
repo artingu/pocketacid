@@ -31,10 +31,11 @@ mixer: Mixer = .{ .channels = .{
     .{ .label = "B2", .pan = 0x90 },
     .{ .label = "bd" },
     .{ .label = "sd" },
-    .{ .label = "cp" },
     .{ .label = "hh" },
     .{ .label = "tm" },
     .{ .label = "cy" },
+    .{ .label = "xx" },
+    .{ .label = "yy" },
 } },
 
 running: bool = false,
