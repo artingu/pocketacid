@@ -123,7 +123,7 @@ pub inline fn next(self: *PDBass, srate: f32) f32 {
     const t: OscType = if (timbre > 0.5) .sqr else .saw;
     self.prev_res = 2 * res * falloff * falloff * falloff * @sin(self.res_phase * std.math.tau);
     self.prev_res += res2_amp * (-2 * res * falloff2 * falloff2 * falloff2 * @sin(self.res2_phase * std.math.tau));
-    self.prev = clamp((pdparams(clamp01(nt_notrack), t).wave(self.phase + fb) * 1 + self.prev_res) * amp);
+    self.prev = clamp((pdparams(clamp01(nt_notrack), t).wave(self.phase + fb) * 1 + self.prev_res)) * amp;
     return self.prev;
 }
 
