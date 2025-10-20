@@ -4,7 +4,7 @@ const PDBass = @import("PDBass.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
-const MixerInterface = @import("MixerInterface.zig");
+const MixerEditor = @import("MixerEditor.zig");
 const Mixer = @import("Mixer.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
@@ -84,7 +84,7 @@ pub fn load(
     tempo: *f32,
     leftjoymode: *JoyMode,
     rightjoymode: *JoyMode,
-    mixer_editor: *MixerInterface,
+    mixer_editor: *MixerEditor,
     mixer: *Mixer,
 ) !void {
     chunkloop: while (true) {
@@ -142,7 +142,7 @@ fn readMixerPans(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !vo
     }
 }
 
-fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerInterface, version: u16, len: u16) !void {
+fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerEditor, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != 2) return error.MixerEditorStateBadLen;
@@ -276,7 +276,7 @@ pub fn save(
     tempo: f32,
     leftjoymode: JoyMode,
     rightjoymode: JoyMode,
-    mixer_editor: *const MixerInterface,
+    mixer_editor: *const MixerEditor,
     mixer: *const Mixer,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);

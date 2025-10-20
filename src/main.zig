@@ -9,8 +9,7 @@ const CharDisplay = @import("CharDisplay.zig");
 const ButtonHandler = @import("ButtonHandler.zig");
 const ControllerManager = @import("ControllerManager.zig");
 const ButtonState = ButtonHandler.ButtonState;
-const DrumInterface = @import("DrumInterface.zig");
-const BassInterface = @import("BassInterface.zig");
+const BassEditor = @import("BassEditor.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoystickHandler = @import("JoystickHandler.zig");
@@ -18,7 +17,7 @@ const PlaybackInfo = @import("BassSeq.zig").PlaybackInfo;
 const PDBass = @import("PDBass.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
-const MixerInterface = @import("MixerInterface.zig");
+const MixerEditor = @import("MixerEditor.zig");
 const DrumEditor = @import("DrumEditor.zig");
 
 const w = 30;
@@ -41,13 +40,13 @@ pub fn main() !void {
     var jh = JoystickHandler{};
     var bh = ButtonHandler{};
     var cm = ControllerManager{};
-    var bass_interface = BassInterface{ .bank = &state.bass_patterns };
+
+    var bass_editor = BassEditor{ .bank = &state.bass_patterns };
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
+    var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
 
     var lj_mode: JoyMode = .timbre_mod;
     var rj_mode: JoyMode = .timbre_mod;
-
-    var mixer_editor = MixerInterface{ .mixer = &Sys.sound_engine.mixer };
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
@@ -184,8 +183,8 @@ pub fn main() !void {
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {
-                            bass_interface.setPattern(p);
-                            bass_interface.display(&tm, 10, 1, 0, false, pi[arranger.column]);
+                            bass_editor.setPattern(p);
+                            bass_editor.display(&tm, 10, 1, 0, false, pi[arranger.column]);
                         },
                         2 => {
                             drum_editor.setPattern(p);
@@ -199,9 +198,9 @@ pub fn main() !void {
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {
-                            bass_interface.handle(trig);
-                            bass_interface.setPattern(p);
-                            bass_interface.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                            bass_editor.handle(trig);
+                            bass_editor.setPattern(p);
+                            bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
                         },
                         2 => {
                             drum_editor.setPattern(p);
