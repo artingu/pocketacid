@@ -30,7 +30,9 @@ const bend_smooth_time = 0.01;
 
 bend: f32 = 0,
 phase: f32 = 0,
+prev_phase: f32 = 0,
 res_phase: f32 = 0,
+res2_phase: f32 = 0,
 legato: MonoLegato = .{ .time = 0.06 },
 man: MonoVoiceManager = .{},
 params: Params = .{},
@@ -55,6 +57,12 @@ pub inline fn next(self: *PDBass, srate: f32) f32 {
     const mod = self.mod_smooth.next(self.params.get(.mod_depth), param_smooth_time, srate);
     const feedback = self.feedback_smooth.next(self.params.get(.feedback), param_smooth_time, srate);
     const state = self.legato.next(self.man.state, srate);
+
+    const res2_amp = r2a: {
+        const flat_timbre = @max(0, timbre * 2 - 1);
+        const ix = (1 - flat_timbre * 16);
+        break :r2a @min(1, 1 - ix * ix * ix);
+    };
 
     if (self.man.state.gate and !self.prev_gate) {
         self.mod_env.trigger();
@@ -89,14 +97,16 @@ pub inline fn next(self: *PDBass, srate: f32) f32 {
 
     const res_freq = 440.0 * std.math.pow(f32, 2.0, (total_mod * 96 + 32 - 69) / 12);
     defer self.res_phase = @mod(self.res_phase + res_freq / srate, 1);
+    defer self.res2_phase = @mod(self.res2_phase + res_freq / srate, 1);
 
     const freq = 440.0 * std.math.pow(f32, 2.0, (pitch - 69) / 12);
     defer {
-        self.phase = self.phase + freq / srate;
-        if (self.phase >= 1) {
-            self.phase = @mod(self.phase, 1);
-            self.res_phase = 0;
-        }
+        const new_phase = @mod(self.phase + freq / srate, 1);
+
+        if (new_phase < self.phase) self.res_phase = 0;
+        if (@mod(new_phase * 2, 1) < @mod(self.phase * 2, 1)) self.res2_phase = 0;
+
+        self.phase = new_phase;
     }
 
     const amp_env_params: ADREnv.Params = .{
@@ -107,12 +117,19 @@ pub inline fn next(self: *PDBass, srate: f32) f32 {
 
     const amp = self.amp_env.next(&amp_env_params, state.gate, srate);
 
-    const falloff = (1 - self.phase);
+    const falloff = falloffFunc(self.phase, res);
+    const falloff2 = falloffFunc(@mod(self.phase + 0.5, 1), res);
     const nt_notrack = total_mod * (1 - clamp01((pitch - 24) / 96));
     const t: OscType = if (timbre > 0.5) .sqr else .saw;
     self.prev_res = 2 * res * falloff * falloff * falloff * @sin(self.res_phase * std.math.tau);
-    self.prev = amp * clamp(pdparams(clamp01(nt_notrack), t).wave(self.phase + fb) + self.prev_res);
+    self.prev_res += res2_amp * (-2 * res * falloff2 * falloff2 * falloff2 * @sin(self.res2_phase * std.math.tau));
+    self.prev = clamp((pdparams(clamp01(nt_notrack), t).wave(self.phase + fb) * 1 + self.prev_res) * amp);
     return self.prev;
+}
+
+pub inline fn falloffFunc(phase: f32, factor: f32) f32 {
+    return @max(0, 1 - phase / @max(0.01, factor));
+    // return 1 - phase;
 }
 
 pub fn handleMidiEvent(self: *PDBass, event: midi.Event) void {
