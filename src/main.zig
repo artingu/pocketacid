@@ -150,16 +150,21 @@ pub fn main() !void {
         handleParams(jh.lx, jh.ly, dt, lj_mode, &Sys.sound_engine.pdbass1.params);
         handleParams(jh.rx, jh.ry, dt, rj_mode, &Sys.sound_engine.pdbass2.params);
 
-        if (trig.comboPress("select")) mixer = !mixer;
-        if (trig.comboPress("select+start")) break :mainloop;
-        if (trig.comboPress("l3")) lj_mode.next();
-        if (trig.comboPress("r3")) rj_mode.next();
-        if (trig.combo("l+up")) Sys.sound_engine.changeTempo(10);
-        if (trig.combo("l+down")) Sys.sound_engine.changeTempo(-10);
-        if (trig.combo("l+right")) Sys.sound_engine.changeTempo(1);
-        if (trig.combo("l+left")) Sys.sound_engine.changeTempo(-1);
-        if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
-        if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
+        const globalkey = trig.hold.l;
+
+        if (globalkey) {
+            if (trig.repeat.up) Sys.sound_engine.changeTempo(10);
+            if (trig.repeat.down) Sys.sound_engine.changeTempo(-10);
+            if (trig.repeat.left) Sys.sound_engine.changeTempo(-1);
+            if (trig.repeat.right) Sys.sound_engine.changeTempo(1);
+        } else {
+            if (trig.comboPress("select")) mixer = !mixer;
+            if (trig.comboPress("select+start")) break :mainloop;
+            if (trig.comboPress("l3")) lj_mode.next();
+            if (trig.comboPress("r3")) rj_mode.next();
+            if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
+            if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
+        }
         tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
 
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
@@ -201,12 +206,12 @@ pub fn main() !void {
                     switch (arranger.column) {
                         0, 1 => {
                             bass_editor.setPattern(p);
-                            bass_editor.handle(trig);
+                            if (!globalkey) bass_editor.handle(trig);
                             bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
                         },
                         2 => {
                             drum_editor.setPattern(p);
-                            drum_editor.handle(trig);
+                            if (!globalkey) drum_editor.handle(trig);
                             drum_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
                         },
                         else => {},
