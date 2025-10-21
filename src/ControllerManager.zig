@@ -29,9 +29,6 @@ pub fn open(self: *@This(), id: sdl.JoystickID) void {
     const controller = sdl.gameControllerOpen(id) orelse return;
     const c = self.p.alloc() catch return;
     c.* = controller;
-
-    std.debug.print("added game controller {s}\n", .{sdl.gameControllerName(controller)});
-    std.debug.print("mapping:\n{s}\n", .{sdl.gameControllerMapping(controller)});
 }
 
 pub fn close(self: *@This(), id: sdl.JoystickID) void {
