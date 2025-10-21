@@ -2,6 +2,7 @@ const std = @import("std");
 
 const DrumPattern = @import("DrumPattern.zig");
 const PDBass = @import("PDBass.zig");
+const DrumMachine = @import("DrumMachine.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
@@ -39,6 +40,9 @@ pub const ChunkTag = enum {
     // Mixer rows
     MXLV,
     MXPA,
+
+    // Drum mutes
+    DRMM,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -89,6 +93,7 @@ pub fn load(
     rightjoymode: *JoyMode,
     mixer_editor: *MixerEditor,
     mixer: *Mixer,
+    mutes: *DrumMachine.Mutes,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -116,7 +121,18 @@ pub fn load(
             .MXED => try readMixerEditorState(r, mixer_editor, version, len),
             .MXLV => try readMixerLvls(r, mixer, version, len),
             .MXPA => try readMixerPans(r, mixer, version, len),
+            .DRMM => try readDrumMutes(r, mutes, version, len),
         }
+    }
+}
+
+fn readDrumMutes(r: std.io.AnyReader, mutes: *DrumMachine.Mutes, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 1) return error.DrumMutesBadLen;
+            mutes.* = @bitCast(try r.readInt(u8, .little));
+        },
+        else => return error.DrumMutesBadVersion,
     }
 }
 
@@ -304,6 +320,7 @@ pub fn save(
     rightjoymode: JoyMode,
     mixer_editor: *const MixerEditor,
     mixer: *const Mixer,
+    mutes: *const DrumMachine.Mutes,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -401,6 +418,10 @@ pub fn save(
 
         for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].pan, .little);
     }
+    try handle.finalize(w);
+
+    handle = beginChunk(.DRMM, 1);
+    try handle.w.writer().any().writeInt(u8, @bitCast(mutes.*), .little);
     try handle.finalize(w);
 }
 

@@ -77,6 +77,7 @@ pub fn main() !void {
             &rj_mode,
             &mixer_editor,
             &Sys.sound_engine.mixer,
+            &Sys.sound_engine.drums.mutes,
         );
     }
 
@@ -101,6 +102,7 @@ pub fn main() !void {
                 rj_mode,
                 &mixer_editor,
                 &Sys.sound_engine.mixer,
+                &Sys.sound_engine.drums.mutes,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
