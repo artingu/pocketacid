@@ -3,6 +3,7 @@ const BassSeq = @import("BassSeq.zig");
 const DrumSeq = @import("DrumSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const Mixer = @import("Mixer.zig");
+const DrumMachine = @import("DrumMachine.zig");
 
 const maxtempo = 300;
 const mintempo = 1;
@@ -30,6 +31,7 @@ ds: DrumSeq = .{
 
 pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
 pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
+drums: DrumMachine = .{ .channel = 2 },
 
 cmd: Cmd = .{},
 
@@ -104,11 +106,13 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     for (self.midibuf.emit()) |event| {
         self.pdbass1.handleMidiEvent(event);
         self.pdbass2.handleMidiEvent(event);
+        self.drums.handleMidiEvent(event);
     }
 
     // TODO better way of naming channel indices
     self.mixer.channels[0].in = self.pdbass1.next(srate);
     self.mixer.channels[1].in = self.pdbass2.next(srate);
+    self.drums.next(&self.mixer, srate);
 
     return self.mixer.mix();
 }

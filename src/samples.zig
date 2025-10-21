@@ -1,16 +1,15 @@
-pub const bd = &embedSample("assets/samples/bd.raw").s;
-pub const ch = &embedSample("assets/samples/ch.raw").s;
-pub const oh = &embedSample("assets/samples/oh.raw").s;
-pub const cy = &embedSample("assets/samples/cy.raw").s;
-pub const hi = &embedSample("assets/samples/hi.raw").s;
-pub const lo = &embedSample("assets/samples/lo.raw").s;
-pub const sd = &embedSample("assets/samples/sd.raw").s;
-
-pub const choh = &embedSample("assets/samples/choh.raw").s;
+pub const bd = @embedFile("assets/samples/bd.raw");
+pub const ch = @embedFile("assets/samples/ch.raw");
+pub const oh = @embedFile("assets/samples/oh.raw");
+pub const cy = @embedFile("assets/samples/cy.raw");
+pub const hi = @embedFile("assets/samples/hi.raw");
+pub const lo = @embedFile("assets/samples/lo.raw");
+pub const sd = @embedFile("assets/samples/sd.raw");
+pub const choh = @embedFile("assets/samples/choh.raw");
 
 pub const Player = struct {
     index: usize = 0,
-    sample: []const f32 = undefined,
+    sample: []const u8 = &.{},
     rate: f32 = 32000,
     phase: f32 = 0,
     volume: f32 = 1.0,
@@ -21,11 +20,14 @@ pub const Player = struct {
         }
         while (self.phase >= 1) {
             self.phase -= 1;
-            self.index += 1;
+            self.index += 2;
         }
         self.phase += self.rate / srate;
         if (self.index < self.sample.len) {
-            return self.volume * self.sample[self.index];
+            const intsample: i16 = @as(i16, @intCast(self.sample[self.index])) | (@as(i16, @intCast(self.sample[self.index + 1])) << 8);
+            const floatsample: f32 = @as(f32, @floatFromInt(intsample)) / 32768;
+
+            return self.volume * floatsample;
         }
         return 0;
     }
@@ -34,22 +36,10 @@ pub const Player = struct {
         self.index = self.sample.len;
     }
 
-    pub fn trigger(self: *Player, sample: []const f32, volume: f32) void {
-        self.volume = volume * volume * volume;
+    pub fn trigger(self: *Player, sample: []const u8, volume: f32) void {
+        self.volume = volume * volume;
         self.sample = sample;
         self.index = 0;
         self.phase = 0;
     }
 };
-
-fn embedSample(comptime path: []const u8) type {
-    @setEvalBranchQuota(100000);
-    const data = @embedFile(path);
-    comptime var converted: [@divTrunc(data.len, 2)]f32 = undefined;
-    for (0..converted.len) |i| {
-        converted[i] = @as(f32, @floatFromInt(@as(i16, @bitCast(@as(u16, @intCast(data[i << 1])) | (@as(u16, @intCast(data[(i << 1) + 1])) << 8))))) / 32768;
-    }
-    return struct {
-        const s = converted;
-    };
-}

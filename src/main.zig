@@ -163,13 +163,13 @@ pub fn main() !void {
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
             Sys.sound_engine.bs1.playbackInfo(),
             Sys.sound_engine.bs2.playbackInfo(),
-            PlaybackInfo{},
+            Sys.sound_engine.ds.playbackInfo(),
         };
 
         const qi: []const ?u8 = &[_]?u8{
             Sys.sound_engine.bs1.queued(),
             Sys.sound_engine.bs2.queued(),
-            null,
+            Sys.sound_engine.ds.queued(),
         };
 
         if (mixer) {
