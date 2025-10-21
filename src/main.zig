@@ -157,6 +157,10 @@ pub fn main() !void {
             if (trig.repeat.down) Sys.sound_engine.changeTempo(-10);
             if (trig.repeat.left) Sys.sound_engine.changeTempo(-1);
             if (trig.repeat.right) Sys.sound_engine.changeTempo(1);
+            if (trig.press.x) Sys.sound_engine.drums.mutes.toggle(.bd);
+            if (trig.press.y) Sys.sound_engine.drums.mutes.toggle(.sd);
+            if (trig.press.b) Sys.sound_engine.drums.mutes.toggle(.hhcy);
+            if (trig.press.a) Sys.sound_engine.drums.mutes.toggle(.tm);
         } else {
             if (trig.comboPress("select")) mixer = !mixer;
             if (trig.comboPress("select+start")) break :mainloop;
@@ -183,10 +187,10 @@ pub fn main() !void {
             mixer_editor.handle(trig);
             mixer_editor.display(&tm, 1, 1, dt);
         } else {
-            if (trig.comboPress("r")) arrange = !arrange;
+            if (!globalkey and trig.comboPress("r")) arrange = !arrange;
             if (arrange) {
-                if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
-                arranger.handle(trig);
+                if (!globalkey and trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
+                if (!globalkey) arranger.handle(trig);
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {
@@ -195,7 +199,15 @@ pub fn main() !void {
                         },
                         2 => {
                             drum_editor.setPattern(p);
-                            drum_editor.display(&tm, 10, 1, dt, false, pi[arranger.column]);
+                            drum_editor.display(
+                                &tm,
+                                10,
+                                1,
+                                dt,
+                                false,
+                                pi[arranger.column],
+                                &Sys.sound_engine.drums.mutes,
+                            );
                         },
                         else => {},
                     }
@@ -212,7 +224,15 @@ pub fn main() !void {
                         2 => {
                             drum_editor.setPattern(p);
                             if (!globalkey) drum_editor.handle(trig);
-                            drum_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                            drum_editor.display(
+                                &tm,
+                                10,
+                                1,
+                                dt,
+                                true,
+                                pi[arranger.column],
+                                &Sys.sound_engine.drums.mutes,
+                            );
                         },
                         else => {},
                     }

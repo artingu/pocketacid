@@ -1,5 +1,6 @@
 const InputState = @import("ButtonHandler.zig").States;
 const DrumPattern = @import("DrumPattern.zig");
+const DrumMachine = @import("DrumMachine.zig");
 const TextMatrix = @import("TextMatrix.zig");
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const colors = @import("colors.zig");
@@ -33,15 +34,24 @@ pub fn handle(self: *@This(), input: InputState) void {
     }
 }
 
-pub fn display(self: *@This(), tm: *TextMatrix, xo: usize, yo: usize, dt: f32, active: bool, pi: PlaybackInfo) void {
+pub fn display(
+    self: *@This(),
+    tm: *TextMatrix,
+    xo: usize,
+    yo: usize,
+    dt: f32,
+    active: bool,
+    pi: PlaybackInfo,
+    mutes: *DrumMachine.Mutes,
+) void {
     const current_pattern = self.selectedPattern();
     const current_len = current_pattern.length();
     const on = active and @mod(self.blink * 4, 1) < 0.5;
 
     tm.print(xo + 3, yo, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
 
-    for (DrumPattern.types, 0..) |t, i| {
-        tm.puts(xo, yo + 1 + i, colors.normal, t.str());
+    inline for (DrumPattern.types, 0..) |t, i| {
+        tm.puts(xo, yo + 1 + i, if (t.muted(mutes)) colors.hilight else colors.normal, t.str());
     }
 
     for (DrumPattern.types, 0..) |t, row| {

@@ -1,4 +1,5 @@
 const std = @import("std");
+const Mutes = @import("DrumMachine.zig").Mutes;
 
 pub const maxlen = 16;
 
@@ -64,6 +65,21 @@ pub const DrumType = enum {
     xx,
     yy,
     ac,
+
+    pub fn muted(comptime self: DrumType, mutes: *Mutes) bool {
+        return switch (self) {
+            .bd => mutes.get(.bd),
+            .sd => mutes.get(.sd),
+            .ch => mutes.get(.hhcy),
+            .oh => mutes.get(.hhcy),
+            .lt => mutes.get(.tm),
+            .ht => mutes.get(.tm),
+            .cy => mutes.get(.hhcy),
+            .xx => false,
+            .yy => false,
+            .ac => false,
+        };
+    }
 
     pub fn str(self: DrumType) []const u8 {
         return switch (self) {
