@@ -1,5 +1,6 @@
 const PDBass = @import("PDBass.zig");
 const BassSeq = @import("BassSeq.zig");
+const DrumSeq = @import("DrumSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const Mixer = @import("Mixer.zig");
 
@@ -21,6 +22,12 @@ bs2: BassSeq = .{
     .arrangement = &@import("state.zig").bass2_arrange,
     .channel = 1,
 },
+ds: DrumSeq = .{
+    .patterns = &@import("state.zig").drum_patterns,
+    .arrangement = &@import("state.zig").drum_arrange,
+    .channel = 2,
+},
+
 pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
 pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
 
@@ -51,6 +58,7 @@ const Cmd = packed struct {
 pub fn everyBuffer(self: *@This()) void {
     if (self.bs1.midibuf == null) self.bs1.midibuf = self.midibuf;
     if (self.bs2.midibuf == null) self.bs2.midibuf = self.midibuf;
+    if (self.ds.midibuf == null) self.ds.midibuf = self.midibuf;
     const cmd = @atomicRmw(Cmd, &self.cmd, .Xchg, .{}, .seq_cst);
     cmdswitch: switch (cmd.t) {
         .startstop => {
@@ -59,17 +67,20 @@ pub fn everyBuffer(self: *@This()) void {
                 @atomicStore(bool, &self.running, false, .seq_cst);
                 self.bs1.stop();
                 self.bs2.stop();
+                self.ds.stop();
             } else {
                 @atomicStore(bool, &self.running, true, .seq_cst);
                 self.phase = 1;
                 self.bs1.start(cmd.row);
                 self.bs2.start(cmd.row);
+                self.ds.start(cmd.row);
             }
         },
         .enqueue => {
             if (!@atomicLoad(bool, &self.running, .seq_cst)) break :cmdswitch;
             self.bs1.enqueue(cmd.row);
             self.bs2.enqueue(cmd.row);
+            self.ds.enqueue(cmd.row);
         },
         .none => {},
     }
@@ -87,6 +98,7 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     while (self.phase >= 1) {
         self.bs1.tick();
         self.bs2.tick();
+        self.ds.tick();
         self.phase -= 1;
     }
     for (self.midibuf.emit()) |event| {

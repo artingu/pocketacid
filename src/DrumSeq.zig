@@ -1,117 +1,157 @@
-const state = @import("state.zig");
-
 const DrumPattern = @import("DrumPattern.zig");
-const DrumTrack = @import("DrumTrack.zig");
+const MidiBuf = @import("MidiBuf.zig");
+const DrumSeq = @This();
+const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
+const Queued = @import("Queued.zig").Queued;
 
-const TrackSeq = struct {
-    idx: usize = 0,
-    stepped_last: bool = true,
-    trigged_last: bool = false,
-    running_last: bool = false,
-    track_id: enum { bd, sd, ch, oh, lo, hi, cy },
+patterns: *[256]DrumPattern,
+arrangement: *[256]u8,
+midibuf: ?*MidiBuf = null,
 
-    fn tick(self: *@This(), running: bool, phase: f32, pattern: *const DrumPattern) ?f32 {
-        const tr = self.track(pattern);
+start_arrangement_idx: u8 = 0,
+arrangement_idx: u8 = 0,
+queued_info: Queued = .{},
 
-        defer self.running_last = running;
-        if (running and !self.running_last)
-            self.reset();
+current_pattern: u8 = 0xff,
 
-        if (!running) return null;
+steptick: u3 = 0,
+step: u5 = 0,
+running: bool = false,
 
-        // Step sequencer if necessary
-        const step_phase = @mod(phase * @as(f32, @floatFromInt(@atomicLoad(u8, &tr.div, .seq_cst))), 1);
-        const stepped = step_phase < 0.5;
-        defer self.stepped_last = stepped;
-        if (stepped and !self.stepped_last) self.nextStep(pattern);
+info: PlaybackInfo = .{},
 
-        // Trigger drums
-        const cur = self.currentStep(pattern);
-        const trigged = if (cur.gates > 0)
-            @mod(step_phase * @as(f32, @floatFromInt(cur.gates)), 1) < 0.5
-        else
-            false;
-        defer self.trigged_last = trigged;
-        if (trigged and !self.trigged_last) return (1 + @as(f32, @floatFromInt(cur.velocity))) / 16;
+channel: u4,
 
-        return null;
+const choh = 36;
+
+pub fn tick(self: *DrumSeq) void {
+    if (!self.running) return;
+
+    self.updatePlaybackInfo();
+
+    if (self.steptick == 0) {
+        self.triggerDrums(self.patterns.*[self.current_pattern].steps[self.step].copy());
     }
 
-    pub fn getIdx(self: *@This()) ?usize {
-        return if (self.running_last) @atomicLoad(usize, &self.idx, .seq_cst) else null;
-    }
+    self.steptick += 1;
+    if (self.steptick >= 6) {
+        self.steptick = 0;
+        self.step += 1;
 
-    fn reset(self: *@This()) void {
-        self.* = .{ .track_id = self.track_id };
-    }
+        if (self.step >= self.patterns.*[self.current_pattern].length()) {
+            self.step = 0;
 
-    fn nextStep(self: *@This(), pattern: *const DrumPattern) void {
-        const tr = self.track(pattern);
-        const len = @atomicLoad(u8, &tr.len, .seq_cst);
-        @atomicStore(usize, &self.idx, (self.idx + 1) % len, .seq_cst);
-    }
-
-    fn currentStep(self: *@This(), pattern: *const DrumPattern) DrumTrack.Step {
-        const tr = self.track(pattern);
-        return .{
-            .gates = @atomicLoad(u4, &tr.steps[self.idx].gates, .seq_cst),
-            .velocity = @atomicLoad(u4, &tr.steps[self.idx].velocity, .seq_cst),
-        };
-    }
-
-    fn track(self: *const @This(), pattern: *const DrumPattern) *const DrumTrack {
-        return switch (self.track_id) {
-            .bd => &pattern.bd,
-            .sd => &pattern.sd,
-            .ch => &pattern.ch,
-            .oh => &pattern.oh,
-            .lo => &pattern.lo,
-            .hi => &pattern.hi,
-            .cy => &pattern.cy,
-        };
-    }
-};
-
-pub const Trigs = struct {
-    bd: ?f32 = null,
-    sd: ?f32 = null,
-    ch: ?f32 = null,
-    oh: ?f32 = null,
-    choh: ?f32 = null,
-    lo: ?f32 = null,
-    hi: ?f32 = null,
-    cy: ?f32 = null,
-};
-
-pattern: *DrumPattern = &state.pattern,
-
-bd: TrackSeq = .{ .track_id = .bd },
-sd: TrackSeq = .{ .track_id = .sd },
-ch: TrackSeq = .{ .track_id = .ch },
-oh: TrackSeq = .{ .track_id = .oh },
-lo: TrackSeq = .{ .track_id = .lo },
-hi: TrackSeq = .{ .track_id = .hi },
-cy: TrackSeq = .{ .track_id = .cy },
-
-pub fn tick(self: *@This(), running: bool, phase: f32) Trigs {
-    var out = Trigs{};
-
-    if (self.bd.tick(running, phase, self.pattern)) |vel| out.bd = vel;
-    if (self.sd.tick(running, phase, self.pattern)) |vel| out.sd = vel;
-    if (self.ch.tick(running, phase, self.pattern)) |vel| out.ch = vel;
-    if (self.oh.tick(running, phase, self.pattern)) |vel| out.oh = vel;
-    if (self.lo.tick(running, phase, self.pattern)) |vel| out.lo = vel;
-    if (self.hi.tick(running, phase, self.pattern)) |vel| out.hi = vel;
-    if (self.cy.tick(running, phase, self.pattern)) |vel| out.cy = vel;
-
-    // Handle simultaneous ch/oh
-    if (out.ch) |ch| {
-        if (out.oh) |oh| {
-            out.choh = @max(ch, oh);
-            out.oh = null;
-            out.ch = null;
+            if (self.current_pattern != 0xff) {
+                self.arrangement_idx +%= 1;
+                const cur_pattern = @atomicLoad(
+                    u8,
+                    &self.arrangement[self.arrangement_idx],
+                    .seq_cst,
+                );
+                if (cur_pattern == 0xff) {
+                    self.arrangement_idx = self.start_arrangement_idx;
+                    @atomicStore(Queued, &self.queued_info, .{}, .seq_cst);
+                }
+                self.updateCurrentPattern();
+            }
         }
     }
+}
 
-    return out;
+fn note(self: *const DrumSeq, p: u7, v: u7) void {
+    if (self.midibuf) |mb| mb.feed(.{ .note_on = .{
+        .channel = self.channel,
+        .pitch = p,
+        .velocity = v,
+    } });
+}
+
+fn triggerDrums(self: *const DrumSeq, d: DrumPattern.Step) void {
+    self.trig(d, if (d.ac) 127 else 63);
+    self.trig(d, 0);
+}
+
+fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7) void {
+    if (d.bd) self.note(drumPitch(.bd), vel);
+    if (d.sd) self.note(drumPitch(.sd), vel);
+    if (d.ch and d.oh)
+        self.note(choh, vel)
+    else if (d.ch)
+        self.note(drumPitch(.ch), vel)
+    else if (d.oh)
+        self.note(drumPitch(.oh), vel);
+    if (d.lt) self.note(drumPitch(.lt), vel);
+    if (d.ht) self.note(drumPitch(.ht), vel);
+    if (d.cy) self.note(drumPitch(.cy), vel);
+    if (d.xx) self.note(drumPitch(.xx), vel);
+    if (d.yy) self.note(drumPitch(.yy), vel);
+}
+
+inline fn updatePlaybackInfo(self: *DrumSeq) void {
+    @atomicStore(PlaybackInfo, &self.info, .{
+        .arrangement_row = self.arrangement_idx,
+        .pattern = self.current_pattern,
+        .step = self.step,
+        .running = self.running and self.current_pattern != 0xff,
+    }, .seq_cst);
+}
+
+inline fn updateCurrentPattern(self: *DrumSeq) void {
+    const arr_idx = self.arrangement_idx;
+    self.current_pattern = @atomicLoad(u8, &self.arrangement[arr_idx], .seq_cst);
+}
+
+pub inline fn playbackInfo(self: *const DrumSeq) PlaybackInfo {
+    return @atomicLoad(PlaybackInfo, &self.info, .seq_cst);
+}
+
+pub fn enqueue(self: *DrumSeq, idx: u8) void {
+    if (@atomicLoad(u8, &self.arrangement.*[idx], .seq_cst) == 0xff) return;
+    self.start_arrangement_idx = idx;
+    @atomicStore(Queued, &self.queued_info, .{
+        .nothing = false,
+        .row = idx,
+    }, .seq_cst);
+}
+
+pub fn queued(self: *const DrumSeq) ?u8 {
+    const q = @atomicLoad(Queued, &self.queued_info, .seq_cst);
+    const pi = self.playbackInfo();
+
+    if (!pi.running) return null;
+    if (q.nothing) return null;
+    return q.row;
+}
+
+pub fn start(self: *DrumSeq, idx: u8) void {
+    self.start_arrangement_idx = idx;
+    self.arrangement_idx = idx;
+    self.updateCurrentPattern();
+
+    self.step = 0;
+    self.steptick = 0;
+
+    self.running = true;
+}
+
+pub fn stop(self: *DrumSeq) void {
+    self.running = false;
+    self.updatePlaybackInfo();
+    @atomicStore(Queued, &self.queued_info, .{}, .seq_cst);
+}
+
+fn drumPitch(d: DrumPattern.DrumType) u7 {
+    return switch (d) {
+        .bd => 32,
+        .sd => 33,
+        .ch => 34,
+        .oh => 35,
+        // ch+oh is 36
+        .lt => 37,
+        .ht => 38,
+        .cy => 39,
+        .xx => 40,
+        .yy => 41,
+        .ac => 0,
+    };
 }

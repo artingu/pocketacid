@@ -3,24 +3,18 @@ const BassPattern = @import("BassPattern.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const BassSeq = @This();
 const midi = @import("midi.zig");
-const state = @import("state.zig");
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
-
-const Queued = packed struct {
-    row: u8 = 0,
-    nothing: bool = true,
-    _: u7 = 0,
-};
+const Queued = @import("Queued.zig").Queued;
 
 patterns: *[256]BassPattern,
 arrangement: *[256]u8,
+midibuf: ?*MidiBuf = null,
 
 start_arrangement_idx: u8 = 0,
 arrangement_idx: u8 = 0,
 queued_info: Queued = .{},
 
 current_pattern: u8 = 0xff,
-midibuf: ?*MidiBuf = null,
 
 steptick: u3 = 0,
 step: u5 = 0,

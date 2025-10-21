@@ -29,19 +29,22 @@ pub const Step = packed struct(u16) {
 
     _: u6 = 0,
 
+    pub fn copy(self: *const Step) Step {
+        return @atomicLoad(Step, self, .seq_cst);
+    }
+
     pub fn get(self: *const Step, t: DrumType) bool {
-        const copy = @atomicLoad(Step, self, .seq_cst);
         return switch (t) {
-            inline else => |v| @field(copy, @tagName(v)),
+            inline else => |v| @field(self.copy(), @tagName(v)),
         };
     }
 
     pub fn set(self: *Step, t: DrumType, value: bool) void {
-        var copy = @atomicLoad(Step, self, .seq_cst);
+        var c = self.copy();
         switch (t) {
-            inline else => |v| @field(copy, @tagName(v)) = value,
+            inline else => |v| @field(c, @tagName(v)) = value,
         }
-        @atomicStore(Step, self, copy, .seq_cst);
+        @atomicStore(Step, self, c, .seq_cst);
     }
 
     pub fn toggle(self: *Step, t: DrumType) void {
