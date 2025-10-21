@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const DrumPattern = @import("DrumPattern.zig");
 const PDBass = @import("PDBass.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
@@ -10,8 +11,9 @@ const Mixer = @import("Mixer.zig");
 var chunkbuf: [0xffff]u8 = undefined;
 
 pub const ChunkTag = enum {
-    // bass patterns
+    // patterns
     BPAT,
+    DPAT,
 
     // bass patches
     PTC1,
@@ -80,6 +82,7 @@ pub fn load(
     arr2: *[256]u8,
     arr3: *[256]u8,
     bpat: *[256]BassPattern,
+    dpat: *[256]DrumPattern,
     arranger: *Arranger,
     tempo: *f32,
     leftjoymode: *JoyMode,
@@ -102,6 +105,7 @@ pub fn load(
         switch (tag) {
             .ARRS => try readArrangerState(r, arranger, version, len),
             .BPAT => try readBassPatterns(r, bpat, version, len),
+            .DPAT => try readDrumPatterns(r, dpat, version, len),
             .PTC1 => try readPatch(r, ptc1, version, len),
             .PTC2 => try readPatch(r, ptc2, version, len),
             .ARR1 => try readArr(r, arr1, version, len),
@@ -223,7 +227,7 @@ fn readBassPatterns(r: std.io.AnyReader, patterns: *[256]BassPattern, version: u
 
 fn readBassPattern(r: std.io.AnyReader, pattern: *BassPattern) !void {
     const len = try r.readInt(u8, .little);
-    if (len > 16) return error.BassPatternLenNotInRange;
+    if (len > BassPattern.maxlen) return error.BassPatternLenNotInRange;
     pattern.len = len;
 
     const base = try r.readInt(u8, .little);
@@ -232,6 +236,27 @@ fn readBassPattern(r: std.io.AnyReader, pattern: *BassPattern) !void {
 
     for (0..BassPattern.maxlen) |i| {
         pattern.steps[i] = @bitCast(try r.readInt(u8, .little));
+    }
+}
+
+fn readDrumPatterns(r: std.io.AnyReader, patterns: *[256]DrumPattern, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != (1 + 2 * DrumPattern.maxlen) * 255) return error.DrumPatternsBadLen;
+            for (0..255) |i| try readDrumPattern(r, &patterns.*[i]);
+        },
+        else => return error.DrumPatternsBadVersion,
+    }
+}
+
+fn readDrumPattern(r: std.io.AnyReader, pattern: *DrumPattern) !void {
+    const len = try r.readInt(u8, .little);
+    if (len > DrumPattern.maxlen) return error.DrumPatternLenNotInRange;
+    pattern.len = len;
+
+    for (0..DrumPattern.maxlen) |i| {
+        const step_int = try r.readInt(u16, .little);
+        pattern.steps[i] = @bitCast(step_int);
     }
 }
 
@@ -272,6 +297,7 @@ pub fn save(
     arr2: *const [256]u8,
     arr3: *const [256]u8,
     bpat: *const [256]BassPattern,
+    dpat: *const [256]DrumPattern,
     arranger: *const Arranger,
     tempo: f32,
     leftjoymode: JoyMode,
@@ -296,8 +322,24 @@ pub fn save(
                 try hw.writeInt(u8, @bitCast(pat.steps[j]), .little);
             }
         }
-        try handle.finalize(w);
     }
+    try handle.finalize(w);
+
+    handle = beginChunk(.DPAT, 1);
+    {
+        const hw = handle.w.writer().any();
+        for (0..255) |i| {
+            const pat = &dpat.*[i];
+
+            try hw.writeInt(u8, pat.length(), .little);
+
+            for (0..DrumPattern.maxlen) |j| {
+                const step_int: u16 = @bitCast(pat.steps[j]);
+                try hw.writeInt(u16, step_int, .little);
+            }
+        }
+    }
+    try handle.finalize(w);
 
     handle = beginChunk(.PTC1, 1);
     try writeBassParams(handle.w.writer().any(), ptc1);
