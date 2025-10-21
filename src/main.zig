@@ -150,7 +150,7 @@ pub fn main() !void {
         handleParams(jh.lx, jh.ly, dt, lj_mode, &Sys.sound_engine.pdbass1.params);
         handleParams(jh.rx, jh.ry, dt, rj_mode, &Sys.sound_engine.pdbass2.params);
 
-        if (trig.comboPress("r")) mixer = !mixer;
+        if (trig.comboPress("select")) mixer = !mixer;
         if (trig.comboPress("select+start")) break :mainloop;
         if (trig.comboPress("l3")) lj_mode.next();
         if (trig.comboPress("r3")) rj_mode.next();
@@ -178,7 +178,7 @@ pub fn main() !void {
             mixer_editor.handle(trig);
             mixer_editor.display(&tm, 1, 1, dt);
         } else {
-            if (trig.comboPress("select")) arrange = !arrange;
+            if (trig.comboPress("r")) arrange = !arrange;
             if (arrange) {
                 if (trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
                 arranger.handle(trig);
