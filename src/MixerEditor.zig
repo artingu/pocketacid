@@ -51,7 +51,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32) voi
         const hilight_level = on and sc == i and sr == .lvl;
         const hilight_pan = on and sc == i and sr == .pan;
 
-        const xo = x + 1 + i * 3;
+        const xo = x + 2 + i * 3;
         tm.puts(xo, y + 1, alter[i % 2], channel.label);
         tm.puts(xo, y + 2, alter[i % 2], "\xc4\xc4");
         tm.print(xo, y + 3, invertIf(alter[i % 2], hilight_level), "{x:0>2}", .{level});
