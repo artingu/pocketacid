@@ -19,6 +19,7 @@ const JoyMode = @import("JoyMode.zig").JoyMode;
 const save = @import("save.zig");
 const MixerEditor = @import("MixerEditor.zig");
 const DrumEditor = @import("DrumEditor.zig");
+const MasterEditor = @import("MasterEditor.zig");
 
 const w = 30;
 const h = 22;
@@ -41,9 +42,15 @@ pub fn main() !void {
     var bh = ButtonHandler{};
     var cm = ControllerManager{};
 
+    var mixer_channels = true;
+
     var bass_editor = BassEditor{ .bank = &state.bass_patterns };
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
+    var master_editor = MasterEditor{ .menu = &.{
+        .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time },
+        .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },
+    } };
 
     var lj_mode: JoyMode = .timbre_mod;
     var rj_mode: JoyMode = .timbre_mod;
@@ -78,6 +85,7 @@ pub fn main() !void {
             &mixer_editor,
             &Sys.sound_engine.mixer,
             &Sys.sound_engine.drums.mutes,
+            &Sys.sound_engine.delay.params,
         );
     }
 
@@ -103,6 +111,7 @@ pub fn main() !void {
                 &mixer_editor,
                 &Sys.sound_engine.mixer,
                 &Sys.sound_engine.drums.mutes,
+                &Sys.sound_engine.delay.params,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
@@ -186,8 +195,11 @@ pub fn main() !void {
         };
 
         if (mixer) {
-            mixer_editor.handle(trig);
-            mixer_editor.display(&tm, 1, 15, dt);
+            if (trig.press.r) mixer_channels = !mixer_channels;
+            mixer_editor.handle(trig, mixer_channels);
+            master_editor.handle(trig, !mixer_channels);
+            mixer_editor.display(&tm, 1, 15, dt, mixer_channels);
+            master_editor.display(&tm, 1, 1, dt, !mixer_channels);
         } else {
             if (!globalkey and trig.comboPress("r")) arrange = !arrange;
             if (arrange) {

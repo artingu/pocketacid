@@ -33,7 +33,7 @@ selected_row: Row = .lvl,
 
 blink: f32 = 0,
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32) void {
+pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
     const on = @mod(self.blink * 4, 1) < 0.5;
 
     const alter = [_]Attrib{
@@ -41,10 +41,11 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32) voi
         colors.normal,
     };
 
-    tm.puts(x, y + 1, colors.normal, "\x0d");
-    tm.puts(x, y + 3, colors.normal, "\x12");
-    tm.puts(x, y + 4, colors.normal, "\x1d");
-    tm.puts(x, y + 5, colors.normal, "\xb0");
+    const label_color = if (active) colors.normal else colors.inactive;
+    tm.puts(x, y + 1, label_color, "\x0d");
+    tm.puts(x, y + 3, label_color, "\x12");
+    tm.puts(x, y + 4, label_color, "\x1d");
+    tm.puts(x, y + 5, label_color, "\xb0");
 
     for (&self.mixer.channels, 0..) |*channel, i| {
         const level = @atomicLoad(u8, &channel.level, .seq_cst);
@@ -58,17 +59,20 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32) voi
         const hilight_snd = on and sc == i and sr == .snd;
 
         const xo = x + 2 + i * 3;
-        tm.puts(xo, y + 1, alter[i % 2], channel.label);
-        tm.puts(xo, y + 2, alter[i % 2], "\xc4\xc4");
-        tm.print(xo, y + 3, invertIf(alter[i % 2], hilight_level), "{x:0>2}", .{level});
-        tm.print(xo, y + 4, invertIf(alter[i % 2], hilight_pan), "{x:0>2}", .{pan});
-        tm.print(xo, y + 5, invertIf(alter[i % 2], hilight_snd), "{x:0>2}", .{send});
+        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.inactive, channel.label);
+        tm.puts(xo, y + 2, if (active) alter[i % 2] else colors.inactive, "\xc4\xc4");
+
+        tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.inactive, "{x:0>2}", .{level});
+        tm.print(xo, y + 4, if (active) invertIf(alter[i % 2], hilight_pan) else colors.inactive, "{x:0>2}", .{pan});
+        tm.print(xo, y + 5, if (active) invertIf(alter[i % 2], hilight_snd) else colors.inactive, "{x:0>2}", .{send});
     }
 
     self.blink = @mod(self.blink + dt, 1);
 }
 
-pub fn handle(self: *@This(), input: InputState) void {
+pub fn handle(self: *@This(), input: InputState, active: bool) void {
+    if (!active) return;
+
     if (input.hold.any()) self.blink = 0;
     const sc = self.selected_channel;
     const sr = self.selected_row;

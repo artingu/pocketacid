@@ -8,6 +8,7 @@ const Arranger = @import("Arranger.zig");
 const JoyMode = @import("JoyMode.zig").JoyMode;
 const MixerEditor = @import("MixerEditor.zig");
 const Mixer = @import("Mixer.zig");
+const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -44,6 +45,9 @@ pub const ChunkTag = enum {
 
     // Drum mutes
     DRMM,
+
+    // Delay params
+    DLPR,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -95,6 +99,7 @@ pub fn load(
     mixer_editor: *MixerEditor,
     mixer: *Mixer,
     mutes: *DrumMachine.Mutes,
+    delay: *StereoFeedbackDelay.Params,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -124,7 +129,19 @@ pub fn load(
             .MXPA => try readMixerPans(r, mixer, version, len),
             .MXSE => try readMixerSends(r, mixer, version, len),
             .DRMM => try readDrumMutes(r, mutes, version, len),
+            .DLPR => try readDelayParams(r, delay, version, len),
         }
+    }
+}
+
+fn readDelayParams(r: std.io.AnyReader, delay: *StereoFeedbackDelay.Params, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 2) return error.DelayParamsBadLen;
+            delay.set(.time, try r.readInt(u8, .little));
+            delay.set(.feedback, try r.readInt(u8, .little));
+        },
+        else => return error.DelayParamsBadVersion,
     }
 }
 
@@ -337,6 +354,7 @@ pub fn save(
     mixer_editor: *const MixerEditor,
     mixer: *const Mixer,
     mutes: *const DrumMachine.Mutes,
+    delay: *const StereoFeedbackDelay.Params,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -442,6 +460,15 @@ pub fn save(
         const hw = handle.w.writer().any();
 
         for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].send, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.DLPR, 1);
+    {
+        const hw = handle.w.writer().any();
+
+        try hw.writeInt(u8, delay.get(.time), .little);
+        try hw.writeInt(u8, delay.get(.feedback), .little);
     }
     try handle.finalize(w);
 

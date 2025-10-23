@@ -70,7 +70,8 @@ pub fn init(self: *@This()) void {
     for (0..delay_buf_left.len) |i| delay_buf_left[i] = 0;
     for (0..delay_buf_right.len) |i| delay_buf_right[i] = 0;
 
-    self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(self.delay.params.get(.time), self.getTempo()));
+    const time = @as(f32, @floatFromInt(self.delay.params.get(.time))) / 16;
+    self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(time, self.getTempo()));
 }
 
 pub fn everyBuffer(self: *@This()) void {
