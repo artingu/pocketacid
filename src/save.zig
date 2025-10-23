@@ -134,6 +134,11 @@ pub fn load(
     }
 }
 
+// Use for deprecated fields
+fn skipLoad(r: std.io.AnyReader, len: usize) !void {
+    try r.skipBytes(len, .{});
+}
+
 fn readDelayParams(r: std.io.AnyReader, delay: *StereoFeedbackDelay.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
