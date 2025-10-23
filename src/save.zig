@@ -40,6 +40,7 @@ pub const ChunkTag = enum {
     // Mixer rows
     MXLV,
     MXPA,
+    MXSE,
 
     // Drum mutes
     DRMM,
@@ -121,6 +122,7 @@ pub fn load(
             .MXED => try readMixerEditorState(r, mixer_editor, version, len),
             .MXLV => try readMixerLvls(r, mixer, version, len),
             .MXPA => try readMixerPans(r, mixer, version, len),
+            .MXSE => try readMixerSends(r, mixer, version, len),
             .DRMM => try readDrumMutes(r, mutes, version, len),
         }
     }
@@ -146,6 +148,19 @@ fn readMixerLvls(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !vo
             }
         },
         else => return error.MixerLevelsBadVersion,
+    }
+}
+
+fn readMixerSends(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != Mixer.nchannels) return error.MixerSendsBadLen;
+
+            for (0..Mixer.nchannels) |i| {
+                mixer.channels[i].send = try r.readInt(u8, .little);
+            }
+        },
+        else => return error.MixerSendsBadVersion,
     }
 }
 
@@ -419,6 +434,14 @@ pub fn save(
         const hw = handle.w.writer().any();
 
         for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].pan, .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.MXSE, 1);
+    {
+        const hw = handle.w.writer().any();
+
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].send, .little);
     }
     try handle.finalize(w);
 

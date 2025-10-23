@@ -187,7 +187,7 @@ pub fn main() !void {
 
         if (mixer) {
             mixer_editor.handle(trig);
-            mixer_editor.display(&tm, 1, 16, dt);
+            mixer_editor.display(&tm, 1, 15, dt);
         } else {
             if (!globalkey and trig.comboPress("r")) arrange = !arrange;
             if (arrange) {
