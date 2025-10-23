@@ -176,6 +176,7 @@ fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerEditor, version
             switch (row_ch) {
                 'l' => mixer_editor.selected_row = .lvl,
                 'p' => mixer_editor.selected_row = .pan,
+                's' => mixer_editor.selected_row = .snd,
                 else => return error.MixerEditorStateBadRow,
             }
         },
@@ -399,6 +400,7 @@ pub fn save(
         const row_ch: u8 = switch (mixer_editor.selected_row) {
             .lvl => 'l',
             .pan => 'p',
+            .snd => 's',
         };
         try hw.writeInt(u8, row_ch, .little);
     }

@@ -4,9 +4,13 @@ const DrumSeq = @import("DrumSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const Mixer = @import("Mixer.zig");
 const DrumMachine = @import("DrumMachine.zig");
+const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 
 const maxtempo = 300;
 const mintempo = 1;
+
+var delay_buf_left: [48000 * 10]f32 = undefined;
+var delay_buf_right: [48000 * 10]f32 = undefined;
 
 midibuf: *MidiBuf,
 phase: f32 = 0,
@@ -33,6 +37,11 @@ pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
 pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
 drums: DrumMachine = .{ .channel = 2 },
 
+delay: StereoFeedbackDelay = .{
+    .left = .{ .delay = .{ .buffer = &delay_buf_left } },
+    .right = .{ .delay = .{ .buffer = &delay_buf_right } },
+},
+
 cmd: Cmd = .{},
 
 mixer: Mixer = .{ .channels = .{
@@ -56,6 +65,11 @@ const Cmd = packed struct {
     row: u8 = 0,
     _: u6 = 0,
 };
+
+pub fn init() void {
+    for (0..delay_buf_left.len) |i| delay_buf_left[i] = 0;
+    for (0..delay_buf_right.len) |i| delay_buf_right[i] = 0;
+}
 
 pub fn everyBuffer(self: *@This()) void {
     if (self.bs1.midibuf == null) self.bs1.midibuf = self.midibuf;
@@ -114,7 +128,11 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     self.mixer.channels[1].in = self.pdbass2.next(srate);
     self.drums.next(&self.mixer, srate);
 
-    return self.mixer.mix();
+    var send: Mixer.Frame = .{};
+    var out = self.mixer.mix(&send);
+    out.add(self.delay.next(send, srate));
+
+    return out;
 }
 
 pub inline fn getTempo(self: *@This()) f32 {

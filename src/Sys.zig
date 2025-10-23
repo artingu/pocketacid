@@ -26,7 +26,6 @@ fn audiocb(data: ?*anyopaque, stream: [*c]u8, byte_len: c_int) callconv(.C) void
 
     sound_engine.everyBuffer();
 
-    // Fill the buffer with silence
     for (buf) |*f| {
         const frame = sound_engine.next(srate);
         f.left = @min(1, @max(-1, frame.left));
@@ -41,6 +40,8 @@ r: *sdl.Renderer,
 audio_device: sdl.AudioDeviceID,
 
 pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
+    SoundEngine.init();
+
     if (sdl.init(sdl.INIT_VIDEO | sdl.INIT_EVENTS | sdl.INIT_GAMECONTROLLER | sdl.INIT_AUDIO) != 0) {
         return error.FailedInitSDL;
     }

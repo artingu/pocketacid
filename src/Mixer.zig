@@ -13,7 +13,7 @@ pub const Frame = struct {
     left: f32 = 0,
     right: f32 = 0,
 
-    fn add(self: *Frame, other: Frame) void {
+    pub fn add(self: *Frame, other: Frame) void {
         self.left += other.left;
         self.right += other.right;
     }
@@ -23,13 +23,14 @@ const Channel = struct {
     label: []const u8,
     level: u8 = 0xc0,
     pan: u8 = 0x80,
+    send: u8 = 0x00,
 
     in: f32 = 0,
 
     inline fn mix(self: *Channel) Frame {
         defer self.in = 0;
 
-        const level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.level, .seq_cst))) / 0x100;
+        const level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.level, .seq_cst))) / 0xff;
         const pan = @as(f32, @floatFromInt(@atomicLoad(u8, &self.pan, .seq_cst))) / 0x100;
 
         const attenuated = self.in * level * level;
@@ -45,8 +46,16 @@ const Channel = struct {
 
 channels: [nchannels]Channel,
 
-pub fn mix(self: *Mixer) Frame {
+pub fn mix(self: *Mixer, send: *Frame) Frame {
     var out = Frame{};
-    for (&self.channels) |*channel| out.add(channel.mix());
+    for (&self.channels) |*channel| {
+        const mx = channel.mix();
+
+        const send_level = @as(f32, @floatFromInt(@atomicLoad(u8, &channel.send, .seq_cst))) / 0x100;
+
+        out.add(mx);
+        send.add(.{ .left = mx.left * send_level, .right = mx.right * send_level });
+    }
+
     return out;
 }
