@@ -20,6 +20,7 @@ const save = @import("save.zig");
 const MixerEditor = @import("MixerEditor.zig");
 const DrumEditor = @import("DrumEditor.zig");
 const MasterEditor = @import("MasterEditor.zig");
+const Clipboard = @import("Clipboard.zig");
 
 const w = 30;
 const h = 22;
@@ -44,6 +45,7 @@ pub fn main() !void {
 
     var mixer_channels = true;
 
+    var clipboard = Clipboard{};
     var bass_editor = BassEditor{ .bank = &state.bass_patterns };
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
@@ -171,6 +173,8 @@ pub fn main() !void {
             if (trig.press.y) Sys.sound_engine.drums.mutes.toggle(.sd);
             if (trig.press.b) Sys.sound_engine.drums.mutes.toggle(.hhcy);
             if (trig.press.a) Sys.sound_engine.drums.mutes.toggle(.tm);
+            if (trig.press.select and !mixer) clipboard.copy(&arranger);
+            if (trig.press.start and !mixer) clipboard.paste(&arranger);
         } else {
             if (trig.comboPress("select")) mixer = !mixer;
             if (trig.comboPress("select+start")) break :mainloop;

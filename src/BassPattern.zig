@@ -8,6 +8,22 @@ len: u8 = 16,
 base: u7 = 48,
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 
+pub fn copy(self: *const @This()) @This() {
+    const len = @atomicLoad(u8, &self.len, .seq_cst);
+    const base = @atomicLoad(u7, &self.base, .seq_cst);
+    var steps: [maxlen]Step = undefined;
+
+    for (0..maxlen) |i| steps[i] = self.steps[i].copy();
+
+    return .{ .len = len, .base = base, .steps = steps };
+}
+
+pub fn assume(self: *@This(), other: *const @This()) void {
+    for (0..maxlen) |i| self.steps[i].assume(other.steps[i]);
+    @atomicStore(u8, &self.len, other.len, .seq_cst);
+    @atomicStore(u7, &self.base, other.base, .seq_cst);
+}
+
 pub inline fn length(self: *const @This()) u8 {
     return @atomicLoad(u8, &self.len, .seq_cst);
 }

@@ -30,7 +30,11 @@ pub const Step = packed struct(u16) {
 
     _: u6 = 0,
 
-    pub fn copy(self: *const Step) Step {
+    pub inline fn assume(self: *Step, new: Step) void {
+        @atomicStore(Step, self, new, .seq_cst);
+    }
+
+    pub inline fn copy(self: *const Step) Step {
         return @atomicLoad(Step, self, .seq_cst);
     }
 
@@ -120,6 +124,20 @@ pub const DrumType = enum {
 
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 len: u8 = maxlen,
+
+pub fn copy(self: *const @This()) @This() {
+    const len = @atomicLoad(u8, &self.len, .seq_cst);
+    var steps: [maxlen]Step = undefined;
+
+    for (0..maxlen) |i| steps[i] = self.steps[i].copy();
+
+    return .{ .len = len, .steps = steps };
+}
+
+pub fn assume(self: *@This(), other: *const @This()) void {
+    for (0..maxlen) |i| self.steps[i].assume(other.steps[i]);
+    @atomicStore(u8, &self.len, other.len, .seq_cst);
+}
 
 pub fn incLength(self: *@This()) void {
     const len = @atomicLoad(u8, &self.len, .seq_cst);
