@@ -52,9 +52,6 @@ pub fn main() !void {
         .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },
     } };
 
-    var lj_mode: JoyMode = .timbre_mod;
-    var rj_mode: JoyMode = .timbre_mod;
-
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
             &state.bass1_arrange,
@@ -80,8 +77,6 @@ pub fn main() !void {
             &state.drum_patterns,
             &arranger,
             &Sys.sound_engine.bpm,
-            &lj_mode,
-            &rj_mode,
             &mixer_editor,
             &Sys.sound_engine.mixer,
             &Sys.sound_engine.drums.mutes,
@@ -106,8 +101,6 @@ pub fn main() !void {
                 &state.drum_patterns,
                 &arranger,
                 Sys.sound_engine.bpm,
-                lj_mode,
-                rj_mode,
                 &mixer_editor,
                 &Sys.sound_engine.mixer,
                 &Sys.sound_engine.drums.mutes,
@@ -157,9 +150,15 @@ pub fn main() !void {
         tm.clear(colors.normal);
 
         const trig = bh.handle(held, dt);
+        const j_mode: JoyMode = if (trig.hold.l2)
+            .res_feedback
+        else if (trig.hold.r2)
+            .decay_accent
+        else
+            .timbre_mod;
 
-        handleParams(jh.lx, jh.ly, dt, lj_mode, &Sys.sound_engine.pdbass1.params);
-        handleParams(jh.rx, jh.ry, dt, rj_mode, &Sys.sound_engine.pdbass2.params);
+        handleParams(jh.lx, jh.ly, dt, j_mode, &Sys.sound_engine.pdbass1.params);
+        handleParams(jh.rx, jh.ry, dt, j_mode, &Sys.sound_engine.pdbass2.params);
 
         const globalkey = trig.hold.l;
 
@@ -175,8 +174,6 @@ pub fn main() !void {
         } else {
             if (trig.comboPress("select")) mixer = !mixer;
             if (trig.comboPress("select+start")) break :mainloop;
-            if (trig.comboPress("l3")) lj_mode.next();
-            if (trig.comboPress("r3")) rj_mode.next();
             if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
             if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         }
@@ -254,16 +251,12 @@ pub fn main() !void {
                 arranger.display(&tm, 1, 2, 0, false, pi, qi);
             }
 
-            const lxy = lj_mode.values(&Sys.sound_engine.pdbass1.params);
-            tm.print(1, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
-                lj_mode.str(),
+            const lxy = j_mode.values(&Sys.sound_engine.pdbass1.params);
+            const rxy = j_mode.values(&Sys.sound_engine.pdbass2.params);
+            tm.print(1, 20, colors.inactive, "{s: <14}{x:0>2}/{x:0>2}    {x:0>2}/{x:0>2}", .{
+                j_mode.str(),
                 lxy.y,
                 lxy.x,
-            });
-
-            const rxy = rj_mode.values(&Sys.sound_engine.pdbass2.params);
-            tm.print(20, 20, colors.inactive, "{s}:{x:0>2}/{x:0>2}", .{
-                rj_mode.str(),
                 rxy.y,
                 rxy.x,
             });

@@ -39,9 +39,9 @@ pub const JoyMode = enum {
 
     pub fn str(self: JoyMode) []const u8 {
         return switch (self) {
-            .timbre_mod => "t/m",
-            .res_feedback => "r/f",
-            .decay_accent => "d/a",
+            .timbre_mod => "timbre/env:",
+            .res_feedback => "res/feedback:",
+            .decay_accent => "decay/accent:",
         };
     }
 

@@ -5,7 +5,6 @@ const PDBass = @import("PDBass.zig");
 const DrumMachine = @import("DrumMachine.zig");
 const BassPattern = @import("BassPattern.zig");
 const Arranger = @import("Arranger.zig");
-const JoyMode = @import("JoyMode.zig").JoyMode;
 const MixerEditor = @import("MixerEditor.zig");
 const Mixer = @import("Mixer.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
@@ -94,8 +93,6 @@ pub fn load(
     dpat: *[256]DrumPattern,
     arranger: *Arranger,
     tempo: *f32,
-    leftjoymode: *JoyMode,
-    rightjoymode: *JoyMode,
     mixer_editor: *MixerEditor,
     mixer: *Mixer,
     mutes: *DrumMachine.Mutes,
@@ -123,7 +120,7 @@ pub fn load(
             .ARR2 => try readArr(r, arr2, version, len),
             .ARR3 => try readArr(r, arr3, version, len),
             .TMPO => try readTempo(r, tempo, version, len),
-            .JOYM => try readJoyModes(r, leftjoymode, rightjoymode, version, len),
+            .JOYM => try skipLoad(r, len),
             .MXED => try readMixerEditorState(r, mixer_editor, version, len),
             .MXLV => try readMixerLvls(r, mixer, version, len),
             .MXPA => try readMixerPans(r, mixer, version, len),
@@ -218,24 +215,6 @@ fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerEditor, version
             }
         },
         else => return error.MixerEditorStateBadVersion,
-    }
-}
-
-fn readJoyModes(r: std.io.AnyReader, left: *JoyMode, right: *JoyMode, version: u16, len: u16) !void {
-    try readJoyMode(r, left, version, len);
-    try readJoyMode(r, right, version, len);
-}
-
-fn readJoyMode(r: std.io.AnyReader, jm: *JoyMode, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 4) return error.JoyModeBadLen;
-
-            var modestr: [2]u8 = undefined;
-            try r.readNoEof(&modestr);
-            jm.* = try JoyMode.fromShort(&modestr);
-        },
-        else => return error.JoyModeBadVersion,
     }
 }
 
@@ -354,8 +333,6 @@ pub fn save(
     dpat: *const [256]DrumPattern,
     arranger: *const Arranger,
     tempo: f32,
-    leftjoymode: JoyMode,
-    rightjoymode: JoyMode,
     mixer_editor: *const MixerEditor,
     mixer: *const Mixer,
     mutes: *const DrumMachine.Mutes,
@@ -418,14 +395,6 @@ pub fn save(
         const hw = handle.w.writer().any();
         const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, tempo))));
         try hw.writeInt(u16, int_tempo, .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.JOYM, 1);
-    {
-        const hw = handle.w.writer().any();
-        _ = try hw.write(leftjoymode.toShort());
-        _ = try hw.write(rightjoymode.toShort());
     }
     try handle.finalize(w);
 
