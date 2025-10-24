@@ -5,7 +5,6 @@ const MonoLegato = @import("MonoLegato.zig");
 const MonoVoiceManager = @import("MonoVoiceManager.zig");
 const PDBass = @This();
 const Smoother = @import("Smoother.zig");
-const Pd = @import("PdVoice.zig").Pd;
 const ADEnv = @import("ADEnv.zig");
 
 const Accessor = @import("Accessor.zig").Accessor;
@@ -200,3 +199,29 @@ inline fn logize3(a: f32) f32 {
     const m = 1 - a;
     return 1 - m * m * m;
 }
+
+pub const Pd = struct {
+    x: f32 = 0.5,
+    y: f32 = 0.5,
+    n: f32 = 0,
+    p: f32 = 0,
+    q: f32 = 1,
+
+    pub fn wave(self: Pd, ph: f32) f32 {
+        const ph_mod = @mod(ph, 1);
+        return @sin((self.p * 0.25 + self.phase(ph_mod)) * std.math.tau * self.q);
+    }
+
+    inline fn phase(self: Pd, ph: f32) f32 {
+        const n = self.n + 1;
+        return @mod(self.singlePhase(ph * n) / n, n);
+    }
+
+    inline fn singlePhase(self: Pd, ph: f32) f32 {
+        const mp = @mod(ph, 1);
+        return @floor(ph) + if (mp < self.x)
+            mp * (self.y / self.x)
+        else
+            (mp - self.x) * ((1 - self.y) / (1 - self.x)) + self.y;
+    }
+};
