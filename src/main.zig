@@ -87,6 +87,7 @@ pub fn main() !void {
             &Sys.sound_engine.drums.mutes,
             &Sys.sound_engine.delay.params,
             &Sys.sound_engine.drums.ducker.params,
+            &Sys.sound_engine.master_drive,
         );
     }
 
@@ -112,6 +113,7 @@ pub fn main() !void {
                 &Sys.sound_engine.drums.mutes,
                 &Sys.sound_engine.delay.params,
                 &Sys.sound_engine.drums.ducker.params,
+                Sys.sound_engine.master_drive,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }

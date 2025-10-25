@@ -53,6 +53,9 @@ pub const ChunkTag = enum {
     // Ducker params
     DUPR,
 
+    // Master drive
+    MADR,
+
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
             inline else => |tag| @tagName(tag).*,
@@ -103,6 +106,7 @@ pub fn load(
     mutes: *DrumMachine.Mutes,
     delay: *StereoFeedbackDelay.Params,
     ducker: *Ducker.Params,
+    master_drive: *u8,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -135,6 +139,7 @@ pub fn load(
             .DRMM => try readDrumMutes(r, mutes, version, len),
             .DLPR => try readDelayParams(r, delay, version, len),
             .DUPR => try readDuckerParams(r, ducker, version, len),
+            .MADR => try readMasterDrive(r, master_drive, version, len),
         }
     }
 }
@@ -142,6 +147,16 @@ pub fn load(
 // Use for deprecated fields
 fn skipLoad(r: std.io.AnyReader, len: usize) !void {
     try r.skipBytes(len, .{});
+}
+
+fn readMasterDrive(r: std.io.AnyReader, master_drive: *u8, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 1) return error.MasterDriveBadLen;
+            @atomicStore(u8, master_drive, try r.readInt(u8, .little), .seq_cst);
+        },
+        else => return error.MasterDriveBadVersion,
+    }
 }
 
 fn readDuckerParams(r: std.io.AnyReader, ducker: *Ducker.Params, version: u16, len: u16) !void {
@@ -376,6 +391,7 @@ pub fn save(
     mutes: *const DrumMachine.Mutes,
     delay: *const StereoFeedbackDelay.Params,
     ducker: *const Ducker.Params,
+    master_drive: u8,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -504,6 +520,10 @@ pub fn save(
 
     handle = beginChunk(.DRMM, 1);
     try handle.w.writer().any().writeInt(u8, @bitCast(mutes.*), .little);
+    try handle.finalize(w);
+
+    handle = beginChunk(.MADR, 1);
+    try handle.w.writer().any().writeInt(u8, master_drive, .little);
     try handle.finalize(w);
 }
 
