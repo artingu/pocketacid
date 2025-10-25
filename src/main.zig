@@ -50,6 +50,7 @@ pub fn main() !void {
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
     var master_editor = MasterEditor{ .menu = &.{
+        .{ .label = "master drive:  ", .ptr = &Sys.sound_engine.master_drive },
         .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time },
         .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time },
         .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },

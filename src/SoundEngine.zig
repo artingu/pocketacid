@@ -6,6 +6,7 @@ const Mixer = @import("Mixer.zig");
 const DrumMachine = @import("DrumMachine.zig");
 const Ducker = @import("Ducker.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
+const drive = @import("drive.zig").drive;
 
 const maxtempo = 300;
 const mintempo = 1;
@@ -17,6 +18,8 @@ midibuf: *MidiBuf,
 phase: f32 = 0,
 bpm: f32 = 120,
 startrow: u8 = 0,
+
+master_drive: u8 = 0,
 
 bs1: BassSeq = .{
     .patterns = &@import("state.zig").bass_patterns,
@@ -138,7 +141,11 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     var out = self.mixer.mix(&send, duck);
     out.add(self.delay.next(send, bpm, duck, srate));
 
-    return out;
+    const master_drive = @atomicLoad(u8, &self.master_drive, .seq_cst);
+    return .{
+        .left = drive(out.left, master_drive),
+        .right = drive(out.right, master_drive),
+    };
 }
 
 pub inline fn getTempo(self: *@This()) f32 {
