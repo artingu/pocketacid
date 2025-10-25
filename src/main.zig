@@ -50,8 +50,10 @@ pub fn main() !void {
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
     var master_editor = MasterEditor{ .menu = &.{
+        .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time },
         .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time },
         .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },
+        .{ .label = "delay duck:    ", .ptr = &Sys.sound_engine.delay.params.duck },
     } };
 
     var arranger = Arranger{
@@ -199,7 +201,7 @@ pub fn main() !void {
             if (trig.press.r) mixer_channels = !mixer_channels;
             mixer_editor.handle(trig, mixer_channels);
             master_editor.handle(trig, !mixer_channels);
-            mixer_editor.display(&tm, 1, 15, dt, mixer_channels);
+            mixer_editor.display(&tm, 1, 14, dt, mixer_channels);
             master_editor.display(&tm, 1, 1, dt, !mixer_channels);
         } else {
             if (!globalkey and trig.comboPress("r")) arrange = !arrange;

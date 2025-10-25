@@ -4,6 +4,7 @@ const DrumSeq = @import("DrumSeq.zig");
 const MidiBuf = @import("MidiBuf.zig");
 const Mixer = @import("Mixer.zig");
 const DrumMachine = @import("DrumMachine.zig");
+const Ducker = @import("Ducker.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 
 const maxtempo = 300;
@@ -70,14 +71,15 @@ pub fn init(self: *@This()) void {
     for (0..delay_buf_left.len) |i| delay_buf_left[i] = 0;
     for (0..delay_buf_right.len) |i| delay_buf_right[i] = 0;
 
+    self.bs1.midibuf = self.midibuf;
+    self.bs2.midibuf = self.midibuf;
+    self.ds.midibuf = self.midibuf;
+
     const time = @as(f32, @floatFromInt(self.delay.params.get(.time))) / 16;
     self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(time, self.getTempo()));
 }
 
 pub fn everyBuffer(self: *@This()) void {
-    if (self.bs1.midibuf == null) self.bs1.midibuf = self.midibuf;
-    if (self.bs2.midibuf == null) self.bs2.midibuf = self.midibuf;
-    if (self.ds.midibuf == null) self.ds.midibuf = self.midibuf;
     const cmd = @atomicRmw(Cmd, &self.cmd, .Xchg, .{}, .seq_cst);
     cmdswitch: switch (cmd.t) {
         .startstop => {
@@ -126,14 +128,15 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
         self.drums.handleMidiEvent(event);
     }
 
+    const duck = self.drums.ducker.next(srate);
     // TODO better way of naming channel indices
     self.mixer.channels[0].in = self.pdbass1.next(srate);
     self.mixer.channels[1].in = self.pdbass2.next(srate);
     self.drums.next(&self.mixer, srate);
 
     var send: Mixer.Frame = .{};
-    var out = self.mixer.mix(&send);
-    out.add(self.delay.next(send, bpm, srate));
+    var out = self.mixer.mix(&send, duck);
+    out.add(self.delay.next(send, bpm, duck, srate));
 
     return out;
 }

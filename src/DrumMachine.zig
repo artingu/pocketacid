@@ -3,6 +3,7 @@ const DrumMachine = @This();
 const Mixer = @import("Mixer.zig");
 const midi = @import("midi.zig");
 const Accessor = @import("Accessor.zig").Accessor;
+const Ducker = @import("Ducker.zig");
 
 pub const Mutes = packed struct(u8) {
     pub const Group = enum { bd, sd, hhcy, tm };
@@ -36,6 +37,7 @@ pub const Params = struct {
 
 channel: u4,
 params: Params = .{},
+ducker: Ducker = .{},
 
 mutes: Mutes = .{},
 
@@ -74,7 +76,10 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             const hhcym = self.mutes.get(.hhcy);
             const tmm = self.mutes.get(.tm);
             switch (e.pitch) {
-                32 => if (!bdm) self.bd.trigger(samples.bd, lev),
+                32 => if (!bdm) {
+                    self.bd.trigger(samples.bd, lev);
+                    self.ducker.trigger();
+                },
                 33 => if (!sdm) self.sd.trigger(samples.sd, lev),
                 34 => if (!hhcym) self.hh.trigger(samples.ch, lev),
                 35 => if (!hhcym) self.hh.trigger(samples.oh, lev),

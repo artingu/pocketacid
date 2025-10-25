@@ -24,16 +24,20 @@ const Channel = struct {
     level: u8 = 0xc0,
     pan: u8 = 0x80,
     send: u8 = 0x00,
+    duck: u8 = 0x00,
 
     in: f32 = 0,
 
-    inline fn mix(self: *Channel) Frame {
+    inline fn mix(self: *Channel, duck: f32) Frame {
         defer self.in = 0;
 
         const level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.level, .seq_cst))) / 0xff;
         const pan = @as(f32, @floatFromInt(@atomicLoad(u8, &self.pan, .seq_cst))) / 0x100;
+        const duck_level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.duck, .seq_cst))) / 0xff;
 
-        const attenuated = self.in * level * level;
+        const total_duck = (1 - duck_level) + duck * duck_level;
+
+        const attenuated = self.in * level * level * total_duck;
 
         const angle: f32 = pan * (std.math.pi / @as(f32, 2));
 
@@ -46,10 +50,10 @@ const Channel = struct {
 
 channels: [nchannels]Channel,
 
-pub fn mix(self: *Mixer, send: *Frame) Frame {
+pub fn mix(self: *Mixer, send: *Frame, duck: f32) Frame {
     var out = Frame{};
     for (&self.channels) |*channel| {
-        const mx = channel.mix();
+        const mx = channel.mix(duck);
 
         const send_level = @as(f32, @floatFromInt(@atomicLoad(u8, &channel.send, .seq_cst))) / 0x100;
 

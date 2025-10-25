@@ -9,20 +9,23 @@ const Row = enum {
     lvl,
     pan,
     snd,
+    dck,
 
     fn next(self: *Row) void {
         self.* = switch (self.*) {
             .lvl => .pan,
             .pan => .snd,
-            .snd => .lvl,
+            .snd => .dck,
+            .dck => .lvl,
         };
     }
 
     fn prev(self: *Row) void {
         self.* = switch (self.*) {
-            .lvl => .snd,
+            .lvl => .dck,
             .pan => .lvl,
             .snd => .pan,
+            .dck => .snd,
         };
     }
 };
@@ -46,17 +49,20 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     tm.puts(x, y + 3, label_color, "\x12");
     tm.puts(x, y + 4, label_color, "\x1d");
     tm.puts(x, y + 5, label_color, "\xb0");
+    tm.puts(x, y + 6, label_color, "\x11");
 
     for (&self.mixer.channels, 0..) |*channel, i| {
         const level = @atomicLoad(u8, &channel.level, .seq_cst);
         const pan = @atomicLoad(u8, &channel.pan, .seq_cst);
         const send = @atomicLoad(u8, &channel.send, .seq_cst);
+        const duck = @atomicLoad(u8, &channel.duck, .seq_cst);
         const sc = self.selected_channel;
         const sr = self.selected_row;
 
         const hilight_level = on and sc == i and sr == .lvl;
         const hilight_pan = on and sc == i and sr == .pan;
         const hilight_snd = on and sc == i and sr == .snd;
+        const hilight_dck = on and sc == i and sr == .dck;
 
         const xo = x + 2 + i * 3;
         tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.inactive, channel.label);
@@ -65,6 +71,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
         tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.inactive, "{x:0>2}", .{level});
         tm.print(xo, y + 4, if (active) invertIf(alter[i % 2], hilight_pan) else colors.inactive, "{x:0>2}", .{pan});
         tm.print(xo, y + 5, if (active) invertIf(alter[i % 2], hilight_snd) else colors.inactive, "{x:0>2}", .{send});
+        tm.print(xo, y + 6, if (active) invertIf(alter[i % 2], hilight_dck) else colors.inactive, "{x:0>2}", .{duck});
     }
 
     self.blink = @mod(self.blink + dt, 1);
@@ -82,6 +89,7 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
             .lvl => &self.mixer.channels[sc].level,
             .pan => &self.mixer.channels[sc].pan,
             .snd => &self.mixer.channels[sc].send,
+            .dck => &self.mixer.channels[sc].duck,
         };
 
         const old = @atomicLoad(u8, addr, .seq_cst);
