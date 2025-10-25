@@ -145,6 +145,12 @@ fn readDelayParams(r: std.io.AnyReader, delay: *StereoFeedbackDelay.Params, vers
             delay.set(.time, try r.readInt(u8, .little));
             delay.set(.feedback, try r.readInt(u8, .little));
         },
+        2 => {
+            if (len != 3) return error.DelayParamsBadLen;
+            delay.set(.time, try r.readInt(u8, .little));
+            delay.set(.feedback, try r.readInt(u8, .little));
+            delay.set(.duck, try r.readInt(u8, .little));
+        },
         else => return error.DelayParamsBadVersion,
     }
 }
@@ -462,12 +468,13 @@ pub fn save(
     }
     try handle.finalize(w);
 
-    handle = beginChunk(.DLPR, 1);
+    handle = beginChunk(.DLPR, 2);
     {
         const hw = handle.w.writer().any();
 
         try hw.writeInt(u8, delay.get(.time), .little);
         try hw.writeInt(u8, delay.get(.feedback), .little);
+        try hw.writeInt(u8, delay.get(.duck), .little);
     }
     try handle.finalize(w);
 
