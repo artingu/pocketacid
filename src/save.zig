@@ -8,6 +8,7 @@ const Arranger = @import("Arranger.zig");
 const MixerEditor = @import("MixerEditor.zig");
 const Mixer = @import("Mixer.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
+const Ducker = @import("Ducker.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -48,6 +49,9 @@ pub const ChunkTag = enum {
 
     // Delay params
     DLPR,
+
+    // Ducker params
+    DUPR,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -98,6 +102,7 @@ pub fn load(
     mixer: *Mixer,
     mutes: *DrumMachine.Mutes,
     delay: *StereoFeedbackDelay.Params,
+    ducker: *Ducker.Params,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -129,6 +134,7 @@ pub fn load(
             .MXDU => try readMixerDuckings(r, mixer, version, len),
             .DRMM => try readDrumMutes(r, mutes, version, len),
             .DLPR => try readDelayParams(r, delay, version, len),
+            .DUPR => try readDuckerParams(r, ducker, version, len),
         }
     }
 }
@@ -136,6 +142,16 @@ pub fn load(
 // Use for deprecated fields
 fn skipLoad(r: std.io.AnyReader, len: usize) !void {
     try r.skipBytes(len, .{});
+}
+
+fn readDuckerParams(r: std.io.AnyReader, ducker: *Ducker.Params, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 1) return error.DuckerParamsBadLen;
+            ducker.set(.time, try r.readInt(u8, .little));
+        },
+        else => return error.DuckerParamsBadVersion,
+    }
 }
 
 fn readDelayParams(r: std.io.AnyReader, delay: *StereoFeedbackDelay.Params, version: u16, len: u16) !void {
@@ -359,6 +375,7 @@ pub fn save(
     mixer: *const Mixer,
     mutes: *const DrumMachine.Mutes,
     delay: *const StereoFeedbackDelay.Params,
+    ducker: *const Ducker.Params,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -475,6 +492,13 @@ pub fn save(
         try hw.writeInt(u8, delay.get(.time), .little);
         try hw.writeInt(u8, delay.get(.feedback), .little);
         try hw.writeInt(u8, delay.get(.duck), .little);
+    }
+    try handle.finalize(w);
+
+    handle = beginChunk(.DUPR, 1);
+    {
+        const hw = handle.w.writer().any();
+        try hw.writeInt(u8, ducker.get(.time), .little);
     }
     try handle.finalize(w);
 
