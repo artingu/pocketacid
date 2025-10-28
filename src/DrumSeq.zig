@@ -27,10 +27,16 @@ const choh = 36;
 pub fn tick(self: *DrumSeq) void {
     if (!self.running) return;
 
+    const step = self.patterns.*[self.current_pattern].steps[self.step].copy();
     self.updatePlaybackInfo();
 
     if (self.steptick == 0) {
-        self.triggerDrums(self.patterns.*[self.current_pattern].steps[self.step].copy());
+        self.triggerDrums(step);
+    }
+
+    if (self.steptick == 3 and step.rr) {
+        self.trig(step, 63);
+        self.trig(step, 0);
     }
 
     self.steptick += 1;
@@ -153,5 +159,6 @@ fn drumPitch(d: DrumPattern.DrumType) u7 {
         .xx => 40,
         .yy => 41,
         .ac => 0,
+        .rr => 0,
     };
 }

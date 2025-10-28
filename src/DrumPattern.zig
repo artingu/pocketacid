@@ -14,6 +14,7 @@ pub const types = [_]DrumType{
     .xx,
     .yy,
     .ac,
+    .rr,
 };
 
 pub const Step = packed struct(u16) {
@@ -27,8 +28,9 @@ pub const Step = packed struct(u16) {
     xx: bool = false,
     yy: bool = false,
     ac: bool = false,
+    rr: bool = false,
 
-    _: u6 = 0,
+    _: u5 = 0,
 
     pub inline fn assume(self: *Step, new: Step) void {
         @atomicStore(Step, self, new, .seq_cst);
@@ -69,6 +71,7 @@ pub const DrumType = enum {
     xx,
     yy,
     ac,
+    rr,
 
     pub fn muted(comptime self: DrumType, mutes: *Mutes) bool {
         return switch (self) {
@@ -82,12 +85,14 @@ pub const DrumType = enum {
             .xx => false,
             .yy => false,
             .ac => false,
+            .rr => false,
         };
     }
 
     pub fn str(self: DrumType) []const u8 {
         return switch (self) {
-            inline else => |v| return @tagName(v),
+            .rr => "\xfa\xfa",
+            inline else => |v| @tagName(v),
         };
     }
 
@@ -102,13 +107,14 @@ pub const DrumType = enum {
             .cy => .xx,
             .xx => .yy,
             .yy => .ac,
-            .ac => .bd,
+            .ac => .rr,
+            .rr => .bd,
         };
     }
 
     pub fn prev(self: *DrumType) void {
         self.* = switch (self.*) {
-            .bd => .ac,
+            .bd => .rr,
             .sd => .bd,
             .ch => .sd,
             .oh => .ch,
@@ -118,6 +124,7 @@ pub const DrumType = enum {
             .xx => .cy,
             .yy => .xx,
             .ac => .yy,
+            .rr => .ac,
         };
     }
 };
