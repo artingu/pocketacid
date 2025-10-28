@@ -56,6 +56,9 @@ pub const ChunkTag = enum {
     // Master drive
     MADR,
 
+    // Drum accent diff
+    DADI,
+
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
             inline else => |tag| @tagName(tag).*,
@@ -107,6 +110,7 @@ pub fn load(
     delay: *StereoFeedbackDelay.Params,
     ducker: *Ducker.Params,
     master_drive: *u8,
+    drum_accent_diff: *u8,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -140,6 +144,7 @@ pub fn load(
             .DLPR => try readDelayParams(r, delay, version, len),
             .DUPR => try readDuckerParams(r, ducker, version, len),
             .MADR => try readMasterDrive(r, master_drive, version, len),
+            .DADI => try readDrumAccentDiff(r, drum_accent_diff, version, len),
         }
     }
 }
@@ -147,6 +152,16 @@ pub fn load(
 // Use for deprecated fields
 fn skipLoad(r: std.io.AnyReader, len: usize) !void {
     try r.skipBytes(len, .{});
+}
+
+fn readDrumAccentDiff(r: std.io.AnyReader, dadi: *u8, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 1) return error.DrumAccentDiffBadLen;
+            @atomicStore(u8, dadi, try r.readInt(u8, .little), .seq_cst);
+        },
+        else => return error.DrumAccentDiffBadVersion,
+    }
 }
 
 fn readMasterDrive(r: std.io.AnyReader, master_drive: *u8, version: u16, len: u16) !void {
@@ -392,6 +407,7 @@ pub fn save(
     delay: *const StereoFeedbackDelay.Params,
     ducker: *const Ducker.Params,
     master_drive: u8,
+    drum_accent_diff: u8,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -524,6 +540,10 @@ pub fn save(
 
     handle = beginChunk(.MADR, 1);
     try handle.w.writer().any().writeInt(u8, master_drive, .little);
+    try handle.finalize(w);
+
+    handle = beginChunk(.DADI, 1);
+    try handle.w.writer().any().writeInt(u8, drum_accent_diff, .little);
     try handle.finalize(w);
 }
 

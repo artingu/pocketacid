@@ -31,7 +31,7 @@ pub const Mutes = packed struct(u8) {
     }
 };
 pub const Params = struct {
-    non_accent_level: f32 = 0.75,
+    non_accent_level: u8 = 0xc0,
     pub usingnamespace Accessor(@This());
 };
 
@@ -67,7 +67,7 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
         .note_on => |e| {
             if (e.velocity == 0) return;
             const lev: f32 = if (e.velocity < 96)
-                self.params.get(.non_accent_level)
+                @as(f32, @floatFromInt(self.params.get(.non_accent_level))) / 0xff
             else
                 1;
 

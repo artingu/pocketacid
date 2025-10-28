@@ -51,6 +51,7 @@ pub fn main() !void {
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
     var master_editor = MasterEditor{ .menu = &.{
         .{ .label = "master drive:  ", .ptr = &Sys.sound_engine.master_drive },
+        .{ .label = "accent diff:   ", .ptr = &Sys.sound_engine.drums.params.non_accent_level },
         .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time },
         .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time },
         .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },
@@ -88,6 +89,7 @@ pub fn main() !void {
             &Sys.sound_engine.delay.params,
             &Sys.sound_engine.drums.ducker.params,
             &Sys.sound_engine.master_drive,
+            &Sys.sound_engine.drums.params.non_accent_level,
         );
     }
 
@@ -114,6 +116,7 @@ pub fn main() !void {
                 &Sys.sound_engine.delay.params,
                 &Sys.sound_engine.drums.ducker.params,
                 Sys.sound_engine.master_drive,
+                Sys.sound_engine.drums.params.non_accent_level,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
