@@ -9,6 +9,7 @@ const MixerEditor = @import("MixerEditor.zig");
 const Mixer = @import("Mixer.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const Ducker = @import("Ducker.zig");
+const Kit = @import("Kit.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -346,6 +347,10 @@ fn readDrumPatterns(r: std.io.AnyReader, patterns: *[256]DrumPattern, version: u
             if (len != (1 + 2 * DrumPattern.maxlen) * 255) return error.DrumPatternsBadLen;
             for (0..255) |i| try readDrumPattern(r, &patterns.*[i]);
         },
+        2 => {
+            if (len != (1 + 2 + 2 * DrumPattern.maxlen) * 255) return error.DrumPatternsBadLen;
+            for (0..255) |i| try readDrumPattern2(r, &patterns.*[i]);
+        },
         else => return error.DrumPatternsBadVersion,
     }
 }
@@ -354,6 +359,23 @@ fn readDrumPattern(r: std.io.AnyReader, pattern: *DrumPattern) !void {
     const len = try r.readInt(u8, .little);
     if (len > DrumPattern.maxlen) return error.DrumPatternLenNotInRange;
     pattern.len = len;
+
+    for (0..DrumPattern.maxlen) |i| {
+        const step_int = try r.readInt(u16, .little);
+        pattern.steps[i] = @bitCast(step_int);
+    }
+}
+
+fn readDrumPattern2(r: std.io.AnyReader, pattern: *DrumPattern) !void {
+    const len = try r.readInt(u8, .little);
+    if (len > DrumPattern.maxlen) return error.DrumPatternLenNotInRange;
+    pattern.len = len;
+
+    var kitnamebuf: [2]u8 = undefined;
+    try r.readNoEof(&kitnamebuf);
+    const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumPatternBadKit;
+
+    pattern.kit = kit;
 
     for (0..DrumPattern.maxlen) |i| {
         const step_int = try r.readInt(u16, .little);
@@ -429,13 +451,14 @@ pub fn save(
     }
     try handle.finalize(w);
 
-    handle = beginChunk(.DPAT, 1);
+    handle = beginChunk(.DPAT, 2);
     {
         const hw = handle.w.writer().any();
         for (0..255) |i| {
             const pat = &dpat.*[i];
 
             try hw.writeInt(u8, pat.length(), .little);
+            try hw.writeAll(@atomicLoad(Kit.Id, &pat.kit, .seq_cst).str());
 
             for (0..DrumPattern.maxlen) |j| {
                 const step_int: u16 = @bitCast(pat.steps[j]);

@@ -100,7 +100,7 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
                 6 => if (!tmm) self.ht.trigger(kit.ht, lev),
                 7 => if (!hhcym) self.cy.trigger(kit.cy, lev),
                 8 => self.xx.trigger(kit.xx, lev),
-                9 => self.xx.trigger(kit.yy, lev),
+                9 => self.yy.trigger(kit.yy, lev),
                 else => {},
             }
         },
