@@ -1,4 +1,5 @@
 const samples = @import("samples.zig");
+const Kit = @import("Kit.zig");
 const DrumMachine = @This();
 const Mixer = @import("Mixer.zig");
 const midi = @import("midi.zig");
@@ -75,20 +76,31 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             const sdm = self.mutes.get(.sd);
             const hhcym = self.mutes.get(.hhcy);
             const tmm = self.mutes.get(.tm);
-            switch (e.pitch) {
-                32 => if (!bdm) {
-                    self.bd.trigger(samples.bd, lev);
+
+            var kit_id: Kit.Id = .R6;
+            var pitch = e.pitch;
+
+            while (pitch >= 10) {
+                pitch -= 10;
+                kit_id = kit_id.next();
+            }
+
+            const kit = kit_id.resolve();
+
+            switch (pitch) {
+                0 => if (!bdm) {
+                    self.bd.trigger(kit.bd, lev);
                     self.ducker.trigger();
                 },
-                33 => if (!sdm) self.sd.trigger(samples.sd, lev),
-                34 => if (!hhcym) self.hh.trigger(samples.ch, lev),
-                35 => if (!hhcym) self.hh.trigger(samples.oh, lev),
-                36 => if (!hhcym) self.hh.trigger(samples.choh, lev),
-                37 => if (!tmm) self.lt.trigger(samples.lo, lev),
-                38 => if (!tmm) self.ht.trigger(samples.hi, lev),
-                39 => if (!hhcym) self.cy.trigger(samples.cy, lev),
-                40 => {}, // xx
-                41 => {}, // yy
+                1 => if (!sdm) self.sd.trigger(kit.sd, lev),
+                2 => if (!hhcym) self.hh.trigger(kit.ch, lev),
+                3 => if (!hhcym) self.hh.trigger(kit.oh, lev),
+                4 => if (!hhcym) self.hh.trigger(kit.choh, lev),
+                5 => if (!tmm) self.lt.trigger(kit.lt, lev),
+                6 => if (!tmm) self.ht.trigger(kit.ht, lev),
+                7 => if (!hhcym) self.cy.trigger(kit.cy, lev),
+                8 => self.xx.trigger(kit.xx, lev),
+                9 => self.xx.trigger(kit.yy, lev),
                 else => {},
             }
         },

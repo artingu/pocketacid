@@ -3,6 +3,7 @@ const MidiBuf = @import("MidiBuf.zig");
 const DrumSeq = @This();
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const Queued = @import("Queued.zig").Queued;
+const Kit = @import("Kit.zig");
 
 patterns: *[256]DrumPattern,
 arrangement: *[256]u8,
@@ -27,16 +28,18 @@ const choh = 36;
 pub fn tick(self: *DrumSeq) void {
     if (!self.running) return;
 
-    const step = self.patterns.*[self.current_pattern].steps[self.step].copy();
+    const pattern = &self.patterns.*[self.current_pattern];
+    const kit_id = @atomicLoad(Kit.Id, &pattern.kit, .seq_cst);
+    const step = pattern.steps[self.step].copy();
     self.updatePlaybackInfo();
 
     if (self.steptick == 0) {
-        self.triggerDrums(step);
+        self.triggerDrums(step, kit_id);
     }
 
     if (self.steptick == 3 and step.rr) {
-        self.trig(step, 63);
-        self.trig(step, 0);
+        self.trig(step, 63, kit_id);
+        self.trig(step, 0, kit_id);
     }
 
     self.steptick += 1;
@@ -72,25 +75,25 @@ fn note(self: *const DrumSeq, p: u7, v: u7) void {
     } });
 }
 
-fn triggerDrums(self: *const DrumSeq, d: DrumPattern.Step) void {
-    self.trig(d, if (d.ac) 127 else 63);
-    self.trig(d, 0);
+fn triggerDrums(self: *const DrumSeq, d: DrumPattern.Step, kit_id: Kit.Id) void {
+    self.trig(d, if (d.ac) 127 else 63, kit_id);
+    self.trig(d, 0, kit_id);
 }
 
-fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7) void {
-    if (d.bd) self.note(drumPitch(.bd), vel);
-    if (d.sd) self.note(drumPitch(.sd), vel);
+fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7, kit_id: Kit.Id) void {
+    if (d.bd) self.note(0 + kit_id.offset(), vel);
+    if (d.sd) self.note(1 + kit_id.offset(), vel);
     if (d.ch and d.oh)
-        self.note(choh, vel)
+        self.note(4 + kit_id.offset(), vel)
     else if (d.ch)
-        self.note(drumPitch(.ch), vel)
+        self.note(2 + kit_id.offset(), vel)
     else if (d.oh)
-        self.note(drumPitch(.oh), vel);
-    if (d.lt) self.note(drumPitch(.lt), vel);
-    if (d.ht) self.note(drumPitch(.ht), vel);
-    if (d.cy) self.note(drumPitch(.cy), vel);
-    if (d.xx) self.note(drumPitch(.xx), vel);
-    if (d.yy) self.note(drumPitch(.yy), vel);
+        self.note(3 + kit_id.offset(), vel);
+    if (d.lt) self.note(5 + kit_id.offset(), vel);
+    if (d.ht) self.note(6 + kit_id.offset(), vel);
+    if (d.cy) self.note(7 + kit_id.offset(), vel);
+    if (d.xx) self.note(8 + kit_id.offset(), vel);
+    if (d.yy) self.note(9 + kit_id.offset(), vel);
 }
 
 inline fn updatePlaybackInfo(self: *DrumSeq) void {
@@ -144,21 +147,4 @@ pub fn stop(self: *DrumSeq) void {
     self.running = false;
     self.updatePlaybackInfo();
     @atomicStore(Queued, &self.queued_info, .{}, .seq_cst);
-}
-
-fn drumPitch(d: DrumPattern.DrumType) u7 {
-    return switch (d) {
-        .bd => 32,
-        .sd => 33,
-        .ch => 34,
-        .oh => 35,
-        // ch+oh is 36
-        .lt => 37,
-        .ht => 38,
-        .cy => 39,
-        .xx => 40,
-        .yy => 41,
-        .ac => 0,
-        .rr => 0,
-    };
 }

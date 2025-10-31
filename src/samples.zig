@@ -1,12 +1,3 @@
-pub const bd = @embedFile("assets/samples/bd.raw");
-pub const ch = @embedFile("assets/samples/ch.raw");
-pub const oh = @embedFile("assets/samples/oh.raw");
-pub const cy = @embedFile("assets/samples/cy.raw");
-pub const hi = @embedFile("assets/samples/hi.raw");
-pub const lo = @embedFile("assets/samples/lo.raw");
-pub const sd = @embedFile("assets/samples/sd.raw");
-pub const choh = @embedFile("assets/samples/choh.raw");
-
 pub const Player = struct {
     index: usize = 0,
     sample: []const u8 = &.{},

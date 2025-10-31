@@ -3,6 +3,7 @@ const DrumPattern = @import("DrumPattern.zig");
 const DrumMachine = @import("DrumMachine.zig");
 const TextMatrix = @import("TextMatrix.zig");
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
+const Kit = @import("Kit.zig");
 const colors = @import("colors.zig");
 
 bank: []DrumPattern,
@@ -15,8 +16,11 @@ pub fn handle(self: *@This(), input: InputState) void {
     if (input.hold.any()) self.blink = 0;
 
     if (input.hold.y) {
+        const kit_id = @atomicLoad(Kit.Id, &self.selectedPattern().kit, .seq_cst);
         if (input.repeat.left) self.selectedPattern().decLength();
         if (input.repeat.right) self.selectedPattern().incLength();
+        if (input.repeat.up) @atomicStore(Kit.Id, &self.selectedPattern().kit, kit_id.prev(), .seq_cst);
+        if (input.repeat.down) @atomicStore(Kit.Id, &self.selectedPattern().kit, kit_id.next(), .seq_cst);
         return;
     }
 
@@ -46,9 +50,11 @@ pub fn display(
 ) void {
     const current_pattern = self.selectedPattern();
     const current_len = current_pattern.length();
+    const kit_id = @atomicLoad(Kit.Id, &current_pattern.kit, .seq_cst);
     const on = active and @mod(self.blink * 4, 1) < 0.5;
 
     tm.print(xo + 3, yo, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
+    tm.print(xo + 13, yo, colors.inactive, "kit:{s}", .{kit_id.str()});
 
     inline for (DrumPattern.types, 0..) |t, i| {
         tm.puts(xo, yo + 1 + i, if (t.muted(mutes)) colors.hilight else colors.normal, t.str());
