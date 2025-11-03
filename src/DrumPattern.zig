@@ -132,7 +132,6 @@ pub const DrumType = enum {
 
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 len: u8 = maxlen,
-kit: Kit.Id = .R6,
 
 pub fn copy(self: *const @This()) @This() {
     const len = @atomicLoad(u8, &self.len, .seq_cst);

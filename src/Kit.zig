@@ -19,13 +19,6 @@ pub const Id = enum(u7) {
     R6,
     R9,
 
-    pub fn offset(self: Id) u7 {
-        return switch (self) {
-            .R6 => 0 * n_notes,
-            .R9 => 1 * n_notes,
-        };
-    }
-
     pub fn resolve(self: Id) *const Kit {
         return switch (self) {
             .R6 => &R6,
@@ -33,22 +26,8 @@ pub const Id = enum(u7) {
         };
     }
 
-    pub fn next(self: Id) Id {
-        return switch (self) {
-            .R6 => .R9,
-            .R9 => .R6,
-        };
-    }
-
-    pub fn prev(self: Id) Id {
-        return switch (self) {
-            .R6 => .R9,
-            .R9 => .R6,
-        };
-    }
-
     pub fn str(self: Id) []const u8 {
-        return std.enums.tagName(Id, self) orelse unreachable;
+        return @tagName(self);
     }
 };
 

@@ -3,7 +3,6 @@ const MidiBuf = @import("MidiBuf.zig");
 const DrumSeq = @This();
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const Queued = @import("Queued.zig").Queued;
-const Kit = @import("Kit.zig");
 
 patterns: *[256]DrumPattern,
 arrangement: *[256]u8,
@@ -29,17 +28,16 @@ pub fn tick(self: *DrumSeq) void {
     if (!self.running) return;
 
     const pattern = &self.patterns.*[self.current_pattern];
-    const kit_id = @atomicLoad(Kit.Id, &pattern.kit, .seq_cst);
     const step = pattern.steps[self.step].copy();
     self.updatePlaybackInfo();
 
     if (self.steptick == 0) {
-        self.triggerDrums(step, kit_id);
+        self.triggerDrums(step);
     }
 
     if (self.steptick == 3 and step.rr) {
-        self.trig(step, 63, kit_id);
-        self.trig(step, 0, kit_id);
+        self.trig(step, 63);
+        self.trig(step, 0);
     }
 
     self.steptick += 1;
@@ -75,25 +73,25 @@ fn note(self: *const DrumSeq, p: u7, v: u7) void {
     } });
 }
 
-fn triggerDrums(self: *const DrumSeq, d: DrumPattern.Step, kit_id: Kit.Id) void {
-    self.trig(d, if (d.ac) 127 else 63, kit_id);
-    self.trig(d, 0, kit_id);
+fn triggerDrums(self: *const DrumSeq, d: DrumPattern.Step) void {
+    self.trig(d, if (d.ac) 127 else 63);
+    self.trig(d, 0);
 }
 
-fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7, kit_id: Kit.Id) void {
-    if (d.bd) self.note(0 + kit_id.offset(), vel);
-    if (d.sd) self.note(1 + kit_id.offset(), vel);
+fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7) void {
+    if (d.bd) self.note(0, vel);
+    if (d.sd) self.note(1, vel);
     if (d.ch and d.oh)
-        self.note(4 + kit_id.offset(), vel)
+        self.note(4, vel)
     else if (d.ch)
-        self.note(2 + kit_id.offset(), vel)
+        self.note(2, vel)
     else if (d.oh)
-        self.note(3 + kit_id.offset(), vel);
-    if (d.lt) self.note(5 + kit_id.offset(), vel);
-    if (d.ht) self.note(6 + kit_id.offset(), vel);
-    if (d.cy) self.note(7 + kit_id.offset(), vel);
-    if (d.xx) self.note(8 + kit_id.offset(), vel);
-    if (d.yy) self.note(9 + kit_id.offset(), vel);
+        self.note(3, vel);
+    if (d.lt) self.note(5, vel);
+    if (d.ht) self.note(6, vel);
+    if (d.cy) self.note(7, vel);
+    if (d.xx) self.note(8, vel);
+    if (d.yy) self.note(9, vel);
 }
 
 inline fn updatePlaybackInfo(self: *DrumSeq) void {

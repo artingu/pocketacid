@@ -49,14 +49,17 @@ pub fn main() !void {
     var bass_editor = BassEditor{ .bank = &state.bass_patterns };
     var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
+
     var master_editor = MasterEditor{ .menu = &.{
-        .{ .label = "master drive:  ", .ptr = &Sys.sound_engine.master_drive },
-        .{ .label = "accent diff:   ", .ptr = &Sys.sound_engine.drums.params.non_accent_level },
-        .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time },
-        .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time },
-        .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback },
-        .{ .label = "delay duck:    ", .ptr = &Sys.sound_engine.delay.params.duck },
+        .{ .u8 = .{ .label = "master drive:  ", .ptr = &Sys.sound_engine.master_drive } },
+        .{ .u8 = .{ .label = "accent diff:   ", .ptr = &Sys.sound_engine.drums.params.non_accent_level } },
+        .{ .u8 = .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time } },
+        .{ .u8 = .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time } },
+        .{ .u8 = .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback } },
+        .{ .u8 = .{ .label = "delay duck:    ", .ptr = &Sys.sound_engine.delay.params.duck } },
+        .{ .Kit = .{ .label = "drum kit:      ", .ptr = &Sys.sound_engine.drums.params.kit } },
     } };
+    // .{ .Foo = .{ .label = "foo test:      ", .ptr = &foo } },
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{

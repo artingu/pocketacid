@@ -33,6 +33,7 @@ pub const Mutes = packed struct(u8) {
 };
 pub const Params = struct {
     non_accent_level: u8 = 0xc0,
+    kit: Kit.Id = .R6,
     pub usingnamespace Accessor(@This());
 };
 
@@ -77,17 +78,9 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             const hhcym = self.mutes.get(.hhcy);
             const tmm = self.mutes.get(.tm);
 
-            var kit_id: Kit.Id = .R6;
-            var pitch = e.pitch;
+            const kit = self.params.get(.kit).resolve();
 
-            while (pitch >= 10) {
-                pitch -= 10;
-                kit_id = kit_id.next();
-            }
-
-            const kit = kit_id.resolve();
-
-            switch (pitch) {
+            switch (e.pitch) {
                 0 => if (!bdm) {
                     self.bd.trigger(kit.bd, lev);
                     self.ducker.trigger();

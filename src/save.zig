@@ -375,7 +375,7 @@ fn readDrumPattern2(r: std.io.AnyReader, pattern: *DrumPattern) !void {
     try r.readNoEof(&kitnamebuf);
     const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumPatternBadKit;
 
-    pattern.kit = kit;
+    _ = kit;
 
     for (0..DrumPattern.maxlen) |i| {
         const step_int = try r.readInt(u16, .little);
@@ -451,14 +451,13 @@ pub fn save(
     }
     try handle.finalize(w);
 
-    handle = beginChunk(.DPAT, 2);
+    handle = beginChunk(.DPAT, 1);
     {
         const hw = handle.w.writer().any();
         for (0..255) |i| {
             const pat = &dpat.*[i];
 
             try hw.writeInt(u8, pat.length(), .little);
-            try hw.writeAll(@atomicLoad(Kit.Id, &pat.kit, .seq_cst).str());
 
             for (0..DrumPattern.maxlen) |j| {
                 const step_int: u16 = @bitCast(pat.steps[j]);
