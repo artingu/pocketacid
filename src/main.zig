@@ -1,6 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl.zig");
-const state = @import("state.zig");
+const song = @import("song.zig");
 const colors = @import("colors.zig");
 
 const Sys = @import("Sys.zig");
@@ -46,8 +46,8 @@ pub fn main() !void {
     var mixer_channels = true;
 
     var clipboard = Clipboard{};
-    var bass_editor = BassEditor{ .bank = &state.bass_patterns };
-    var drum_editor = DrumEditor{ .bank = &state.drum_patterns };
+    var bass_editor = BassEditor{ .bank = &song.bass_patterns };
+    var drum_editor = DrumEditor{ .bank = &song.drum_patterns };
     var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
 
     var master_editor = MasterEditor{ .menu = &.{
@@ -63,9 +63,9 @@ pub fn main() !void {
 
     var arranger = Arranger{
         .columns = &[_]*[256]u8{
-            &state.bass1_arrange,
-            &state.bass2_arrange,
-            &state.drum_arrange,
+            &song.bass1_arrange,
+            &song.bass2_arrange,
+            &song.drum_arrange,
         },
     };
 
@@ -79,11 +79,11 @@ pub fn main() !void {
             br.reader().any(),
             &Sys.sound_engine.pdbass1.params,
             &Sys.sound_engine.pdbass2.params,
-            &state.bass1_arrange,
-            &state.bass2_arrange,
-            &state.drum_arrange,
-            &state.bass_patterns,
-            &state.drum_patterns,
+            &song.bass1_arrange,
+            &song.bass2_arrange,
+            &song.drum_arrange,
+            &song.bass_patterns,
+            &song.drum_patterns,
             &arranger,
             &Sys.sound_engine.bpm,
             &mixer_editor,
@@ -107,11 +107,11 @@ pub fn main() !void {
                 writer,
                 &Sys.sound_engine.pdbass1.params,
                 &Sys.sound_engine.pdbass2.params,
-                &state.bass1_arrange,
-                &state.bass2_arrange,
-                &state.drum_arrange,
-                &state.bass_patterns,
-                &state.drum_patterns,
+                &song.bass1_arrange,
+                &song.bass2_arrange,
+                &song.drum_arrange,
+                &song.bass_patterns,
+                &song.drum_patterns,
                 &arranger,
                 Sys.sound_engine.bpm,
                 &mixer_editor,

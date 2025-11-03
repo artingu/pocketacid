@@ -7,6 +7,7 @@ const DrumMachine = @import("DrumMachine.zig");
 const Ducker = @import("Ducker.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const drive = @import("drive.zig").drive;
+const song = @import("song.zig");
 
 const maxtempo = 300;
 const mintempo = 1;
@@ -22,18 +23,18 @@ startrow: u8 = 0,
 master_drive: u8 = 0,
 
 bs1: BassSeq = .{
-    .patterns = &@import("state.zig").bass_patterns,
-    .arrangement = &@import("state.zig").bass1_arrange,
+    .patterns = &song.bass_patterns,
+    .arrangement = &song.bass1_arrange,
     .channel = 0,
 },
 bs2: BassSeq = .{
-    .patterns = &@import("state.zig").bass_patterns,
-    .arrangement = &@import("state.zig").bass2_arrange,
+    .patterns = &song.bass_patterns,
+    .arrangement = &song.bass2_arrange,
     .channel = 1,
 },
 ds: DrumSeq = .{
-    .patterns = &@import("state.zig").drum_patterns,
-    .arrangement = &@import("state.zig").drum_arrange,
+    .patterns = &song.drum_patterns,
+    .arrangement = &song.drum_arrange,
     .channel = 2,
 },
 

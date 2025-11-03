@@ -2,7 +2,7 @@ const BassPattern = @import("BassPattern.zig");
 const DrumPattern = @import("DrumPattern.zig");
 const Arranger = @import("Arranger.zig");
 
-const state = @import("state.zig");
+const song = @import("song.zig");
 
 const Buffer = union(enum) {
     none,
@@ -17,10 +17,10 @@ pub fn copy(self: *@This(), arr: *const Arranger) void {
 
     switch (arr.column) {
         0, 1 => {
-            self.buffer = .{ .bass = state.bass_patterns[pat].copy() };
+            self.buffer = .{ .bass = song.bass_patterns[pat].copy() };
         },
         2 => {
-            self.buffer = .{ .drum = state.drum_patterns[pat].copy() };
+            self.buffer = .{ .drum = song.drum_patterns[pat].copy() };
         },
         else => unreachable,
     }
@@ -32,13 +32,13 @@ pub fn paste(self: *@This(), arr: *const Arranger) void {
     switch (arr.column) {
         0, 1 => switch (self.buffer) {
             .none => {},
-            .bass => |*v| state.bass_patterns[pat].assume(v),
+            .bass => |*v| song.bass_patterns[pat].assume(v),
             .drum => {},
         },
         2 => switch (self.buffer) {
             .none => {},
             .bass => {},
-            .drum => |*v| state.drum_patterns[pat].assume(v),
+            .drum => |*v| song.drum_patterns[pat].assume(v),
         },
         else => unreachable,
     }
