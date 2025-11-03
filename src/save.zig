@@ -60,6 +60,9 @@ pub const ChunkTag = enum {
     // Drum accent diff
     DADI,
 
+    // Drum kit
+    DKIT,
+
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
             inline else => |tag| @tagName(tag).*,
@@ -112,6 +115,7 @@ pub fn load(
     ducker: *Ducker.Params,
     master_drive: *u8,
     drum_accent_diff: *u8,
+    drum_kit_id: *Kit.Id,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -146,6 +150,7 @@ pub fn load(
             .DUPR => try readDuckerParams(r, ducker, version, len),
             .MADR => try readMasterDrive(r, master_drive, version, len),
             .DADI => try readDrumAccentDiff(r, drum_accent_diff, version, len),
+            .DKIT => try readDrumKitId(r, drum_kit_id, version, len),
         }
     }
 }
@@ -153,6 +158,19 @@ pub fn load(
 // Use for deprecated fields
 fn skipLoad(r: std.io.AnyReader, len: usize) !void {
     try r.skipBytes(len, .{});
+}
+
+fn readDrumKitId(r: std.io.AnyReader, kit_id: *Kit.Id, version: u16, len: u16) !void {
+    switch (version) {
+        1 => {
+            if (len != 2) return error.DrumAccentDiffBadLen;
+            var kitnamebuf: [2]u8 = undefined;
+            try r.readNoEof(&kitnamebuf);
+            const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumKitBadId;
+            kit_id.* = kit;
+        },
+        else => return error.DrumKitBadVersion,
+    }
 }
 
 fn readDrumAccentDiff(r: std.io.AnyReader, dadi: *u8, version: u16, len: u16) !void {
@@ -430,6 +448,7 @@ pub fn save(
     ducker: *const Ducker.Params,
     master_drive: u8,
     drum_accent_diff: u8,
+    drum_kit_id: Kit.Id,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -566,6 +585,10 @@ pub fn save(
 
     handle = beginChunk(.DADI, 1);
     try handle.w.writer().any().writeInt(u8, drum_accent_diff, .little);
+    try handle.finalize(w);
+
+    handle = beginChunk(.DKIT, 1);
+    try handle.w.writer().any().writeAll(@tagName(drum_kit_id));
     try handle.finalize(w);
 }
 

@@ -93,6 +93,7 @@ pub fn main() !void {
             &Sys.sound_engine.drums.ducker.params,
             &Sys.sound_engine.master_drive,
             &Sys.sound_engine.drums.params.non_accent_level,
+            &Sys.sound_engine.drums.params.kit,
         );
     }
 
@@ -120,6 +121,7 @@ pub fn main() !void {
                 &Sys.sound_engine.drums.ducker.params,
                 Sys.sound_engine.master_drive,
                 Sys.sound_engine.drums.params.non_accent_level,
+                Sys.sound_engine.drums.params.kit,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
