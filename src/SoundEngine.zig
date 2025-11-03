@@ -6,8 +6,10 @@ const Mixer = @import("Mixer.zig");
 const DrumMachine = @import("DrumMachine.zig");
 const Ducker = @import("Ducker.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
-const drive = @import("drive.zig").drive;
+const calcDrive = @import("drive.zig").drive;
 const song = @import("song.zig");
+const GlobalParams = @import("Params.zig");
+const Accessor = @import("Accessor.zig").Accessor;
 
 const maxtempo = 300;
 const mintempo = 1;
@@ -15,12 +17,24 @@ const mintempo = 1;
 var delay_buf_left: [48000 * 10]f32 = undefined;
 var delay_buf_right: [48000 * 10]f32 = undefined;
 
-midibuf: *MidiBuf,
-phase: f32 = 0,
-bpm: f32 = 120,
-startrow: u8 = 0,
+pub const Params = struct {
+    bpm: f32 = 120,
+    drive: u8 = 0,
 
-master_drive: u8 = 0,
+    pub usingnamespace Accessor(@This());
+
+    pub inline fn changeTempo(self: *@This(), change: f32) void {
+        const bpm = self.get(.bpm);
+        const new = @min(maxtempo, @max(mintempo, bpm + change));
+        self.set(.bpm, new);
+    }
+};
+
+midibuf: *MidiBuf,
+params: *const Params = undefined,
+
+phase: f32 = 0,
+startrow: u8 = 0,
 
 bs1: BassSeq = .{
     .patterns = &song.bass_patterns,
@@ -38,27 +52,28 @@ ds: DrumSeq = .{
     .channel = 2,
 },
 
-pdbass1: PDBass = .{ .params = .{ .channel = 0 } },
-pdbass2: PDBass = .{ .params = .{ .channel = 1 } },
-drums: DrumMachine = .{ .channel = 2 },
+pdbass1: PDBass = .{ .channel = 0, .params = undefined },
+pdbass2: PDBass = .{ .channel = 1, .params = undefined },
+drums: DrumMachine = .{ .channel = 2, .params = undefined },
 
 delay: StereoFeedbackDelay = .{
     .left = .{ .delay = .{ .buffer = &delay_buf_left } },
     .right = .{ .delay = .{ .buffer = &delay_buf_right } },
+    .params = undefined,
 },
 
 cmd: Cmd = .{},
 
 mixer: Mixer = .{ .channels = .{
-    .{ .label = "B1", .pan = 0x70 },
-    .{ .label = "B2", .pan = 0x90 },
-    .{ .label = "bd" },
-    .{ .label = "sd" },
-    .{ .label = "hh" },
-    .{ .label = "tm" },
-    .{ .label = "cy" },
-    .{ .label = "xx" },
-    .{ .label = "yy" },
+    .{ .label = "B1", .params = undefined },
+    .{ .label = "B2", .params = undefined },
+    .{ .label = "bd", .params = undefined },
+    .{ .label = "sd", .params = undefined },
+    .{ .label = "hh", .params = undefined },
+    .{ .label = "tm", .params = undefined },
+    .{ .label = "cy", .params = undefined },
+    .{ .label = "xx", .params = undefined },
+    .{ .label = "yy", .params = undefined },
 } },
 
 running: bool = false,
@@ -71,16 +86,26 @@ const Cmd = packed struct {
     _: u6 = 0,
 };
 
-pub fn init(self: *@This()) void {
+pub fn init(self: *@This(), params: *const GlobalParams) void {
     for (0..delay_buf_left.len) |i| delay_buf_left[i] = 0;
     for (0..delay_buf_right.len) |i| delay_buf_right[i] = 0;
+    for (0..Mixer.nchannels) |i| self.mixer.channels[i].params = &params.mixer[i];
+
+    self.params = &params.engine;
+    self.pdbass1.params = &params.bass1;
+    self.pdbass2.params = &params.bass2;
+    self.drums.params = &params.drums;
+    self.delay.params = &params.delay;
 
     self.bs1.midibuf = self.midibuf;
     self.bs2.midibuf = self.midibuf;
     self.ds.midibuf = self.midibuf;
+}
 
+pub fn resetDelay(self: *@This()) void {
     const time = @as(f32, @floatFromInt(self.delay.params.get(.time))) / 16;
-    self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(time, self.getTempo()));
+    const tempo = self.params.get(.bpm);
+    self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(time, tempo));
 }
 
 pub fn everyBuffer(self: *@This()) void {
@@ -117,7 +142,7 @@ pub fn everyBuffer(self: *@This()) void {
 }
 
 pub fn next(self: *@This(), srate: f32) Mixer.Frame {
-    const bpm = self.getTempo();
+    const bpm = self.params.get(.bpm);
 
     self.phase += 24 * bpm / (60 * srate);
     while (self.phase >= 1) {
@@ -132,7 +157,9 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
         self.drums.handleMidiEvent(event);
     }
 
-    const duck = self.drums.ducker.next(srate);
+    // TODO can this be handled by DrumMachine itself?
+    const duck = self.drums.ducker.next(self.drums.params.get(.duck_time), srate);
+
     // TODO better way of naming channel indices
     self.mixer.channels[0].in = self.pdbass1.next(srate);
     self.mixer.channels[1].in = self.pdbass2.next(srate);
@@ -142,25 +169,11 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     var out = self.mixer.mix(&send, duck);
     out.add(self.delay.next(send, bpm, duck, srate));
 
-    const master_drive = @atomicLoad(u8, &self.master_drive, .seq_cst);
+    const drive = self.params.get(.drive);
     return .{
-        .left = drive(out.left, master_drive),
-        .right = drive(out.right, master_drive),
+        .left = calcDrive(out.left, drive),
+        .right = calcDrive(out.right, drive),
     };
-}
-
-pub inline fn getTempo(self: *@This()) f32 {
-    return @atomicLoad(f32, &self.bpm, .seq_cst);
-}
-
-pub inline fn setTempo(self: *@This(), bpm: f32) void {
-    @atomicStore(f32, &self.bpm, bpm, .seq_cst);
-}
-
-pub inline fn changeTempo(self: *@This(), change: f32) void {
-    const bpm = @atomicLoad(f32, &self.bpm, .seq_cst);
-    const new = @min(maxtempo, @max(mintempo, bpm + change));
-    @atomicStore(f32, &self.bpm, new, .seq_cst);
 }
 
 pub fn startstop(self: *@This(), row: u8) void {

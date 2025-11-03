@@ -10,6 +10,7 @@ const Mixer = @import("Mixer.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const Ducker = @import("Ducker.zig");
 const Kit = @import("Kit.zig");
+const Params = @import("Params.zig");
 
 var chunkbuf: [0xffff]u8 = undefined;
 
@@ -99,23 +100,14 @@ fn beginChunk(tag: ChunkTag, version: u16) ChunkHandle {
 
 pub fn load(
     r: std.io.AnyReader,
-    ptc1: *PDBass.Params,
-    ptc2: *PDBass.Params,
+    params: *Params,
     arr1: *[256]u8,
     arr2: *[256]u8,
     arr3: *[256]u8,
     bpat: *[256]BassPattern,
     dpat: *[256]DrumPattern,
     arranger: *Arranger,
-    tempo: *f32,
     mixer_editor: *MixerEditor,
-    mixer: *Mixer,
-    mutes: *DrumMachine.Mutes,
-    delay: *StereoFeedbackDelay.Params,
-    ducker: *Ducker.Params,
-    master_drive: *u8,
-    drum_accent_diff: *u8,
-    drum_kit_id: *Kit.Id,
 ) !void {
     chunkloop: while (true) {
         var tagnamebuf: [4]u8 = undefined;
@@ -133,24 +125,24 @@ pub fn load(
             .ARRS => try readArrangerState(r, arranger, version, len),
             .BPAT => try readBassPatterns(r, bpat, version, len),
             .DPAT => try readDrumPatterns(r, dpat, version, len),
-            .PTC1 => try readPatch(r, ptc1, version, len),
-            .PTC2 => try readPatch(r, ptc2, version, len),
+            .PTC1 => try readPatch(r, &params.bass1, version, len),
+            .PTC2 => try readPatch(r, &params.bass2, version, len),
             .ARR1 => try readArr(r, arr1, version, len),
             .ARR2 => try readArr(r, arr2, version, len),
             .ARR3 => try readArr(r, arr3, version, len),
-            .TMPO => try readTempo(r, tempo, version, len),
+            .TMPO => try readTempo(r, &params.engine.bpm, version, len),
             .JOYM => try skipLoad(r, len),
             .MXED => try readMixerEditorState(r, mixer_editor, version, len),
-            .MXLV => try readMixerLvls(r, mixer, version, len),
-            .MXPA => try readMixerPans(r, mixer, version, len),
-            .MXSE => try readMixerSends(r, mixer, version, len),
-            .MXDU => try readMixerDuckings(r, mixer, version, len),
-            .DRMM => try readDrumMutes(r, mutes, version, len),
-            .DLPR => try readDelayParams(r, delay, version, len),
-            .DUPR => try readDuckerParams(r, ducker, version, len),
-            .MADR => try readMasterDrive(r, master_drive, version, len),
-            .DADI => try readDrumAccentDiff(r, drum_accent_diff, version, len),
-            .DKIT => try readDrumKitId(r, drum_kit_id, version, len),
+            .MXLV => try readMixerLvls(r, &params.mixer, version, len),
+            .MXPA => try readMixerPans(r, &params.mixer, version, len),
+            .MXSE => try readMixerSends(r, &params.mixer, version, len),
+            .MXDU => try readMixerDuckings(r, &params.mixer, version, len),
+            .DRMM => try readDrumMutes(r, &params.drums.mutes, version, len),
+            .DLPR => try readDelayParams(r, &params.delay, version, len),
+            .DUPR => try readDuckerParams(r, &params.drums, version, len),
+            .MADR => try readMasterDrive(r, &params.engine.drive, version, len),
+            .DADI => try readDrumAccentDiff(r, &params.drums.non_accent_level, version, len),
+            .DKIT => try readDrumKitId(r, &params.drums.kit, version, len),
         }
     }
 }
@@ -193,11 +185,11 @@ fn readMasterDrive(r: std.io.AnyReader, master_drive: *u8, version: u16, len: u1
     }
 }
 
-fn readDuckerParams(r: std.io.AnyReader, ducker: *Ducker.Params, version: u16, len: u16) !void {
+fn readDuckerParams(r: std.io.AnyReader, drums: *DrumMachine.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != 1) return error.DuckerParamsBadLen;
-            ducker.set(.time, try r.readInt(u8, .little));
+            drums.set(.duck_time, try r.readInt(u8, .little));
         },
         else => return error.DuckerParamsBadVersion,
     }
@@ -230,52 +222,52 @@ fn readDrumMutes(r: std.io.AnyReader, mutes: *DrumMachine.Mutes, version: u16, l
     }
 }
 
-fn readMixerLvls(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+fn readMixerLvls(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != Mixer.nchannels) return error.MixerLevelsBadLen;
 
             for (0..Mixer.nchannels) |i| {
-                mixer.channels[i].level = try r.readInt(u8, .little);
+                mixer[i].set(.level, try r.readInt(u8, .little));
             }
         },
         else => return error.MixerLevelsBadVersion,
     }
 }
 
-fn readMixerDuckings(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+fn readMixerDuckings(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != Mixer.nchannels) return error.MixerDuckingsBadLen;
 
             for (0..Mixer.nchannels) |i| {
-                mixer.channels[i].duck = try r.readInt(u8, .little);
+                mixer[i].set(.duck, try r.readInt(u8, .little));
             }
         },
         else => return error.MixerDuckingsBadVersion,
     }
 }
 
-fn readMixerSends(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+fn readMixerSends(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != Mixer.nchannels) return error.MixerSendsBadLen;
 
             for (0..Mixer.nchannels) |i| {
-                mixer.channels[i].send = try r.readInt(u8, .little);
+                mixer[i].set(.send, try r.readInt(u8, .little));
             }
         },
         else => return error.MixerSendsBadVersion,
     }
 }
 
-fn readMixerPans(r: std.io.AnyReader, mixer: *Mixer, version: u16, len: u16) !void {
+fn readMixerPans(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
             if (len != Mixer.nchannels) return error.MixerPansBadLen;
 
             for (0..Mixer.nchannels) |i| {
-                mixer.channels[i].pan = try r.readInt(u8, .little);
+                mixer[i].set(.pan, try r.readInt(u8, .little));
             }
         },
         else => return error.MixerPansBadVersion,
@@ -432,23 +424,14 @@ fn readArr(r: std.io.AnyReader, arr: *[256]u8, version: u16, len: u16) !void {
 
 pub fn save(
     w: std.io.AnyWriter,
-    ptc1: *const PDBass.Params,
-    ptc2: *const PDBass.Params,
+    params: *const Params,
     arr1: *const [256]u8,
     arr2: *const [256]u8,
     arr3: *const [256]u8,
     bpat: *const [256]BassPattern,
     dpat: *const [256]DrumPattern,
     arranger: *const Arranger,
-    tempo: f32,
     mixer_editor: *const MixerEditor,
-    mixer: *const Mixer,
-    mutes: *const DrumMachine.Mutes,
-    delay: *const StereoFeedbackDelay.Params,
-    ducker: *const Ducker.Params,
-    master_drive: u8,
-    drum_accent_diff: u8,
-    drum_kit_id: Kit.Id,
 ) !void {
     try writeChunk(.ARR1, 1, arr1, w);
     try writeChunk(.ARR2, 1, arr2, w);
@@ -487,11 +470,11 @@ pub fn save(
     try handle.finalize(w);
 
     handle = beginChunk(.PTC1, 1);
-    try writeBassParams(handle.w.writer().any(), ptc1);
+    try writeBassParams(handle.w.writer().any(), &params.bass1);
     try handle.finalize(w);
 
     handle = beginChunk(.PTC2, 1);
-    try writeBassParams(handle.w.writer().any(), ptc2);
+    try writeBassParams(handle.w.writer().any(), &params.bass2);
     try handle.finalize(w);
 
     handle = beginChunk(.ARRS, 1);
@@ -505,7 +488,7 @@ pub fn save(
     handle = beginChunk(.TMPO, 1);
     {
         const hw = handle.w.writer().any();
-        const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, tempo))));
+        const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, params.engine.get(.bpm)))));
         try hw.writeInt(u16, int_tempo, .little);
     }
     try handle.finalize(w);
@@ -530,7 +513,7 @@ pub fn save(
     {
         const hw = handle.w.writer().any();
 
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].level, .little);
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.level), .little);
     }
     try handle.finalize(w);
 
@@ -538,7 +521,7 @@ pub fn save(
     {
         const hw = handle.w.writer().any();
 
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].pan, .little);
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.pan), .little);
     }
     try handle.finalize(w);
 
@@ -546,7 +529,7 @@ pub fn save(
     {
         const hw = handle.w.writer().any();
 
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].send, .little);
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.send), .little);
     }
     try handle.finalize(w);
 
@@ -554,7 +537,7 @@ pub fn save(
     {
         const hw = handle.w.writer().any();
 
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, mixer.channels[i].duck, .little);
+        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.duck), .little);
     }
     try handle.finalize(w);
 
@@ -562,33 +545,33 @@ pub fn save(
     {
         const hw = handle.w.writer().any();
 
-        try hw.writeInt(u8, delay.get(.time), .little);
-        try hw.writeInt(u8, delay.get(.feedback), .little);
-        try hw.writeInt(u8, delay.get(.duck), .little);
+        try hw.writeInt(u8, params.delay.get(.time), .little);
+        try hw.writeInt(u8, params.delay.get(.feedback), .little);
+        try hw.writeInt(u8, params.delay.get(.duck), .little);
     }
     try handle.finalize(w);
 
     handle = beginChunk(.DUPR, 1);
     {
         const hw = handle.w.writer().any();
-        try hw.writeInt(u8, ducker.get(.time), .little);
+        try hw.writeInt(u8, params.drums.get(.duck_time), .little);
     }
     try handle.finalize(w);
 
     handle = beginChunk(.DRMM, 1);
-    try handle.w.writer().any().writeInt(u8, @bitCast(mutes.*), .little);
+    try handle.w.writer().any().writeInt(u8, @bitCast(params.drums.get(.mutes)), .little);
     try handle.finalize(w);
 
     handle = beginChunk(.MADR, 1);
-    try handle.w.writer().any().writeInt(u8, master_drive, .little);
+    try handle.w.writer().any().writeInt(u8, params.engine.get(.drive), .little);
     try handle.finalize(w);
 
     handle = beginChunk(.DADI, 1);
-    try handle.w.writer().any().writeInt(u8, drum_accent_diff, .little);
+    try handle.w.writer().any().writeInt(u8, params.drums.get(.non_accent_level), .little);
     try handle.finalize(w);
 
     handle = beginChunk(.DKIT, 1);
-    try handle.w.writer().any().writeAll(@tagName(drum_kit_id));
+    try handle.w.writer().any().writeAll(@tagName(params.drums.get(.kit)));
     try handle.finalize(w);
 }
 

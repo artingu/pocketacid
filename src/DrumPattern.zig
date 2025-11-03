@@ -74,7 +74,7 @@ pub const DrumType = enum {
     ac,
     rr,
 
-    pub fn muted(comptime self: DrumType, mutes: *Mutes) bool {
+    pub fn muted(comptime self: DrumType, mutes: Mutes) bool {
         return switch (self) {
             .bd => mutes.get(.bd),
             .sd => mutes.get(.sd),

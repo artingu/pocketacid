@@ -16,7 +16,7 @@ pub const Params = struct {
 left: FractionalDelayLine,
 right: FractionalDelayLine,
 
-params: Params = .{},
+params: *const Params,
 smoothed_delay_time: Smoother = .{},
 
 pub fn next(self: *@This(), in: Frame, bpm: f32, duck: f32, srate: f32) Frame {

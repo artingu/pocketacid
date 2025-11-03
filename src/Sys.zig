@@ -40,8 +40,6 @@ r: *sdl.Renderer,
 audio_device: sdl.AudioDeviceID,
 
 pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
-    sound_engine.init();
-
     if (sdl.init(sdl.INIT_VIDEO | sdl.INIT_EVENTS | sdl.INIT_GAMECONTROLLER | sdl.INIT_AUDIO) != 0) {
         return error.FailedInitSDL;
     }

@@ -42,7 +42,7 @@ pub fn display(
     dt: f32,
     active: bool,
     pi: PlaybackInfo,
-    mutes: *DrumMachine.Mutes,
+    mutes: DrumMachine.Mutes,
 ) void {
     const current_pattern = self.selectedPattern();
     const current_len = current_pattern.length();

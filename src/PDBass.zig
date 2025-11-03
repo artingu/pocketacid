@@ -19,13 +19,14 @@ pub const Params = struct {
     decay: f32 = 0.2,
     accentness: f32 = 0.3,
 
-    channel: u4 = 0,
-
     pub usingnamespace Accessor(@This());
 };
 
 const param_smooth_time = 0.1;
 const bend_smooth_time = 0.01;
+
+channel: u4,
+params: *const Params,
 
 bend: f32 = 0,
 phase: f32 = 0,
@@ -34,7 +35,6 @@ res_phase: f32 = 0,
 res2_phase: f32 = 0,
 legato: MonoLegato = .{ .time = 0.06 },
 man: MonoVoiceManager = .{},
-params: Params = .{},
 amp_env: ADREnv = .{},
 prev: f32 = 0,
 prev_res: f32 = 0,
@@ -132,7 +132,7 @@ pub inline fn falloffFunc(phase: f32, factor: f32) f32 {
 }
 
 pub fn handleMidiEvent(self: *PDBass, event: midi.Event) void {
-    if ((event.channel() orelse return) != self.params.get(.channel)) return;
+    if ((event.channel() orelse return) != self.channel) return;
     switch (event) {
         .note_on => |e| self.man.noteOn(e.pitch, e.velocity),
         .note_off => |e| self.man.noteOff(e.pitch),

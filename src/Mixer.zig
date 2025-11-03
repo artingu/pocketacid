@@ -1,4 +1,5 @@
 const std = @import("std");
+const Accessor = @import("Accessor.zig").Accessor;
 
 pub const Channels = struct {
     pub const bass1 = 0;
@@ -19,21 +20,27 @@ pub const Frame = struct {
     }
 };
 
-const Channel = struct {
+pub const Channel = struct {
+    pub const Params = struct {
+        level: u8 = 0xc0,
+        pan: u8 = 0x80,
+        send: u8 = 0x00,
+        duck: u8 = 0x00,
+
+        pub usingnamespace Accessor(@This());
+    };
+
     label: []const u8,
-    level: u8 = 0xc0,
-    pan: u8 = 0x80,
-    send: u8 = 0x00,
-    duck: u8 = 0x00,
+    params: *const Params,
 
     in: f32 = 0,
 
     inline fn mix(self: *Channel, duck: f32) Frame {
         defer self.in = 0;
 
-        const level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.level, .seq_cst))) / 0xff;
-        const pan = @as(f32, @floatFromInt(@atomicLoad(u8, &self.pan, .seq_cst))) / 0x100;
-        const duck_level = @as(f32, @floatFromInt(@atomicLoad(u8, &self.duck, .seq_cst))) / 0xff;
+        const level = @as(f32, @floatFromInt(self.params.get(.level))) / 0xff;
+        const pan = @as(f32, @floatFromInt(self.params.get(.pan))) / 0x100;
+        const duck_level = @as(f32, @floatFromInt(self.params.get(.duck))) / 0xff;
 
         const total_duck = (1 - duck_level) + duck * duck_level;
 
@@ -55,7 +62,7 @@ pub fn mix(self: *Mixer, send: *Frame, duck: f32) Frame {
     for (&self.channels) |*channel| {
         const mx = channel.mix(duck);
 
-        const send_level = @as(f32, @floatFromInt(@atomicLoad(u8, &channel.send, .seq_cst))) / 0x100;
+        const send_level = @as(f32, @floatFromInt(channel.params.get(.send))) / 0x100;
 
         out.add(mx);
         send.add(.{ .left = mx.left * send_level, .right = mx.right * send_level });

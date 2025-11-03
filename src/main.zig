@@ -21,12 +21,15 @@ const MixerEditor = @import("MixerEditor.zig");
 const DrumEditor = @import("DrumEditor.zig");
 const MasterEditor = @import("MasterEditor.zig");
 const Clipboard = @import("Clipboard.zig");
+const Params = @import("Params.zig");
 
 const w = 30;
 const h = 22;
 const savename = "state.sav";
 
 pub fn main() !void {
+    var params = Params{};
+
     var cells: [w * h]CharDisplay.Cell = undefined;
     var last_rendered: [w * h]CharDisplay.Cell = undefined;
     for (0..w * h) |i| last_rendered[i] = .{ .char = 0, .attrib = .{} };
@@ -48,16 +51,18 @@ pub fn main() !void {
     var clipboard = Clipboard{};
     var bass_editor = BassEditor{ .bank = &song.bass_patterns };
     var drum_editor = DrumEditor{ .bank = &song.drum_patterns };
-    var mixer_editor = MixerEditor{ .mixer = &Sys.sound_engine.mixer };
+    var mixer_editor = MixerEditor{ .channels = &params.mixer, .mixer = &Sys.sound_engine.mixer };
+
+    Sys.sound_engine.init(&params);
 
     var master_editor = MasterEditor{ .menu = &.{
-        .{ .u8 = .{ .label = "master drive:  ", .ptr = &Sys.sound_engine.master_drive } },
-        .{ .u8 = .{ .label = "accent diff:   ", .ptr = &Sys.sound_engine.drums.params.non_accent_level } },
-        .{ .u8 = .{ .label = "duck time:     ", .ptr = &Sys.sound_engine.drums.ducker.params.time } },
-        .{ .u8 = .{ .label = "delay time:    ", .ptr = &Sys.sound_engine.delay.params.time } },
-        .{ .u8 = .{ .label = "delay feedback:", .ptr = &Sys.sound_engine.delay.params.feedback } },
-        .{ .u8 = .{ .label = "delay duck:    ", .ptr = &Sys.sound_engine.delay.params.duck } },
-        .{ .Kit = .{ .label = "drum kit:      ", .ptr = &Sys.sound_engine.drums.params.kit } },
+        .{ .u8 = .{ .label = "master drive:  ", .ptr = &params.engine.drive } },
+        .{ .u8 = .{ .label = "accent diff:   ", .ptr = &params.drums.non_accent_level } },
+        .{ .u8 = .{ .label = "duck time:     ", .ptr = &params.drums.duck_time } },
+        .{ .u8 = .{ .label = "delay time:    ", .ptr = &params.delay.time } },
+        .{ .u8 = .{ .label = "delay feedback:", .ptr = &params.delay.feedback } },
+        .{ .u8 = .{ .label = "delay duck:    ", .ptr = &params.delay.duck } },
+        .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
     } };
     // .{ .Foo = .{ .label = "foo test:      ", .ptr = &foo } },
 
@@ -77,25 +82,18 @@ pub fn main() !void {
         var br = std.io.bufferedReader(file.reader());
         try save.load(
             br.reader().any(),
-            &Sys.sound_engine.pdbass1.params,
-            &Sys.sound_engine.pdbass2.params,
+            &params,
             &song.bass1_arrange,
             &song.bass2_arrange,
             &song.drum_arrange,
             &song.bass_patterns,
             &song.drum_patterns,
             &arranger,
-            &Sys.sound_engine.bpm,
             &mixer_editor,
-            &Sys.sound_engine.mixer,
-            &Sys.sound_engine.drums.mutes,
-            &Sys.sound_engine.delay.params,
-            &Sys.sound_engine.drums.ducker.params,
-            &Sys.sound_engine.master_drive,
-            &Sys.sound_engine.drums.params.non_accent_level,
-            &Sys.sound_engine.drums.params.kit,
         );
     }
+
+    Sys.sound_engine.resetDelay();
 
     defer {
         saveblock: {
@@ -105,23 +103,14 @@ pub fn main() !void {
 
             save.save(
                 writer,
-                &Sys.sound_engine.pdbass1.params,
-                &Sys.sound_engine.pdbass2.params,
+                &params,
                 &song.bass1_arrange,
                 &song.bass2_arrange,
                 &song.drum_arrange,
                 &song.bass_patterns,
                 &song.drum_patterns,
                 &arranger,
-                Sys.sound_engine.bpm,
                 &mixer_editor,
-                &Sys.sound_engine.mixer,
-                &Sys.sound_engine.drums.mutes,
-                &Sys.sound_engine.delay.params,
-                &Sys.sound_engine.drums.ducker.params,
-                Sys.sound_engine.master_drive,
-                Sys.sound_engine.drums.params.non_accent_level,
-                Sys.sound_engine.drums.params.kit,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }
@@ -174,20 +163,20 @@ pub fn main() !void {
         else
             .timbre_mod;
 
-        handleParams(jh.lx, jh.ly, dt, j_mode, &Sys.sound_engine.pdbass1.params);
-        handleParams(jh.rx, jh.ry, dt, j_mode, &Sys.sound_engine.pdbass2.params);
+        handleParams(jh.lx, jh.ly, dt, j_mode, &params.bass1);
+        handleParams(jh.rx, jh.ry, dt, j_mode, &params.bass2);
 
         const globalkey = trig.hold.l;
 
         if (globalkey) {
-            if (trig.repeat.up) Sys.sound_engine.changeTempo(10);
-            if (trig.repeat.down) Sys.sound_engine.changeTempo(-10);
-            if (trig.repeat.left) Sys.sound_engine.changeTempo(-1);
-            if (trig.repeat.right) Sys.sound_engine.changeTempo(1);
-            if (trig.press.x) Sys.sound_engine.drums.mutes.toggle(.bd);
-            if (trig.press.y) Sys.sound_engine.drums.mutes.toggle(.sd);
-            if (trig.press.b) Sys.sound_engine.drums.mutes.toggle(.hhcy);
-            if (trig.press.a) Sys.sound_engine.drums.mutes.toggle(.tm);
+            if (trig.repeat.up) params.engine.changeTempo(10);
+            if (trig.repeat.down) params.engine.changeTempo(-10);
+            if (trig.repeat.left) params.engine.changeTempo(-1);
+            if (trig.repeat.right) params.engine.changeTempo(1);
+            if (trig.press.x) params.drums.mutes.toggle(.bd);
+            if (trig.press.y) params.drums.mutes.toggle(.sd);
+            if (trig.press.b) params.drums.mutes.toggle(.hhcy);
+            if (trig.press.a) params.drums.mutes.toggle(.tm);
             if (trig.press.select and !mixer) clipboard.copy(&arranger);
             if (trig.press.start and !mixer) clipboard.paste(&arranger);
         } else {
@@ -196,7 +185,7 @@ pub fn main() !void {
             if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
             if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         }
-        tm.print(1, 0, colors.normal, "{d}", .{Sys.sound_engine.getTempo()});
+        tm.print(1, 0, colors.normal, "{d}", .{params.engine.get(.bpm)});
 
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
             Sys.sound_engine.bs1.playbackInfo(),
@@ -236,7 +225,7 @@ pub fn main() !void {
                                 dt,
                                 false,
                                 pi[arranger.column],
-                                &Sys.sound_engine.drums.mutes,
+                                params.drums.get(.mutes),
                             );
                         },
                         else => {},
@@ -261,7 +250,7 @@ pub fn main() !void {
                                 dt,
                                 true,
                                 pi[arranger.column],
-                                &Sys.sound_engine.drums.mutes,
+                                params.drums.get(.mutes),
                             );
                         },
                         else => {},
@@ -270,8 +259,8 @@ pub fn main() !void {
                 arranger.display(&tm, 1, 2, 0, false, pi, qi);
             }
 
-            const lxy = j_mode.values(&Sys.sound_engine.pdbass1.params);
-            const rxy = j_mode.values(&Sys.sound_engine.pdbass2.params);
+            const lxy = j_mode.values(&params.bass1);
+            const rxy = j_mode.values(&params.bass2);
             tm.print(1, 20, colors.inactive, "{s: <14}{x:0>2}/{x:0>2}    {x:0>2}/{x:0>2}", .{
                 j_mode.str(),
                 lxy.y,

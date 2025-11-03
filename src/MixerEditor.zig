@@ -31,6 +31,7 @@ const Row = enum {
 };
 
 mixer: *Mixer,
+channels: *[Mixer.nchannels]Mixer.Channel.Params,
 selected_channel: u8 = 0,
 selected_row: Row = .lvl,
 
@@ -51,7 +52,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     tm.puts(x, y + 5, label_color, "\xb0");
     tm.puts(x, y + 6, label_color, "\x11");
 
-    for (&self.mixer.channels, 0..) |*channel, i| {
+    for (self.channels, 0..) |*channel, i| {
         const level = @atomicLoad(u8, &channel.level, .seq_cst);
         const pan = @atomicLoad(u8, &channel.pan, .seq_cst);
         const send = @atomicLoad(u8, &channel.send, .seq_cst);
@@ -65,7 +66,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
         const hilight_dck = on and sc == i and sr == .dck;
 
         const xo = x + 2 + i * 3;
-        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.inactive, channel.label);
+        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.inactive, self.mixer.channels[i].label);
         tm.puts(xo, y + 2, if (active) alter[i % 2] else colors.inactive, "\xc4\xc4");
 
         tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.inactive, "{x:0>2}", .{level});
@@ -86,10 +87,10 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
 
     if (input.hold.a) {
         const addr = switch (sr) {
-            .lvl => &self.mixer.channels[sc].level,
-            .pan => &self.mixer.channels[sc].pan,
-            .snd => &self.mixer.channels[sc].send,
-            .dck => &self.mixer.channels[sc].duck,
+            .lvl => &self.channels[sc].level,
+            .pan => &self.channels[sc].pan,
+            .snd => &self.channels[sc].send,
+            .dck => &self.channels[sc].duck,
         };
 
         const old = @atomicLoad(u8, addr, .seq_cst);
@@ -112,12 +113,12 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
 }
 
 fn nextChannel(self: *@This()) void {
-    self.selected_channel = (self.selected_channel + 1) % @as(u8, @intCast(self.mixer.channels.len));
+    self.selected_channel = (self.selected_channel + 1) % @as(u8, @intCast(self.channels.len));
 }
 
 fn prevChannel(self: *@This()) void {
     if (self.selected_channel == 0)
-        self.selected_channel = @intCast(self.mixer.channels.len - 1)
+        self.selected_channel = @intCast(self.channels.len - 1)
     else
         self.selected_channel -= 1;
 }

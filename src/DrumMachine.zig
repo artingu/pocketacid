@@ -24,7 +24,7 @@ pub const Mutes = packed struct(u8) {
         @atomicStore(Mutes, self, new, .seq_cst);
     }
 
-    pub fn get(self: *Mutes, comptime group: Group) bool {
+    pub fn get(self: *const Mutes, comptime group: Group) bool {
         const copy = @atomicLoad(Mutes, self, .seq_cst);
         return switch (group) {
             inline else => |v| @field(copy, @tagName(v)),
@@ -34,14 +34,15 @@ pub const Mutes = packed struct(u8) {
 pub const Params = struct {
     non_accent_level: u8 = 0xc0,
     kit: Kit.Id = .R6,
+    duck_time: u8 = 0x20,
+    mutes: Mutes = .{},
     pub usingnamespace Accessor(@This());
 };
 
 channel: u4,
-params: Params = .{},
-ducker: Ducker = .{},
+params: *const Params,
 
-mutes: Mutes = .{},
+ducker: Ducker = .{},
 
 bd: samples.Player = .{},
 sd: samples.Player = .{},
@@ -73,10 +74,11 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             else
                 1;
 
-            const bdm = self.mutes.get(.bd);
-            const sdm = self.mutes.get(.sd);
-            const hhcym = self.mutes.get(.hhcy);
-            const tmm = self.mutes.get(.tm);
+            const mutes = self.params.get(.mutes);
+            const bdm = mutes.get(.bd);
+            const sdm = mutes.get(.sd);
+            const hhcym = mutes.get(.hhcy);
+            const tmm = mutes.get(.tm);
 
             const kit = self.params.get(.kit).resolve();
 
