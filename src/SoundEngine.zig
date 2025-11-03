@@ -18,12 +18,12 @@ var delay_buf_left: [48000 * 10]f32 = undefined;
 var delay_buf_right: [48000 * 10]f32 = undefined;
 
 pub const Params = struct {
-    bpm: f32 = 120,
+    bpm: i16 = 120,
     drive: u8 = 0,
 
     pub usingnamespace Accessor(@This());
 
-    pub inline fn changeTempo(self: *@This(), change: f32) void {
+    pub inline fn changeTempo(self: *@This(), change: i16) void {
         const bpm = self.get(.bpm);
         const new = @min(maxtempo, @max(mintempo, bpm + change));
         self.set(.bpm, new);
@@ -104,7 +104,7 @@ pub fn init(self: *@This(), params: *const GlobalParams) void {
 
 pub fn resetDelay(self: *@This()) void {
     const time = @as(f32, @floatFromInt(self.delay.params.get(.time))) / 16;
-    const tempo = self.params.get(.bpm);
+    const tempo: f32 = @floatFromInt(self.params.get(.bpm));
     self.delay.smoothed_delay_time.short(StereoFeedbackDelay.calcDelayTime(time, tempo));
 }
 
@@ -142,7 +142,7 @@ pub fn everyBuffer(self: *@This()) void {
 }
 
 pub fn next(self: *@This(), srate: f32) Mixer.Frame {
-    const bpm = self.params.get(.bpm);
+    const bpm: f32 = @floatFromInt(self.params.get(.bpm));
 
     self.phase += 24 * bpm / (60 * srate);
     while (self.phase >= 1) {

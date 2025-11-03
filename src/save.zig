@@ -19,10 +19,6 @@ pub const ChunkTag = enum {
     BPAT,
     DPAT,
 
-    // bass patches
-    PTC1,
-    PTC2,
-
     // arrangement columns
     ARR1,
     ARR2,
@@ -31,38 +27,11 @@ pub const ChunkTag = enum {
     // Arranger state
     ARRS,
 
-    // Tempo
-    TMPO,
-
-    // Joystick modes
-    JOYM,
-
     // Mixer editor state
     MXED,
 
-    // Mixer rows
-    MXLV,
-    MXPA,
-    MXSE,
-    MXDU,
-
-    // Drum mutes
-    DRMM,
-
-    // Delay params
-    DLPR,
-
-    // Ducker params
-    DUPR,
-
-    // Master drive
-    MADR,
-
-    // Drum accent diff
-    DADI,
-
-    // Drum kit
-    DKIT,
+    // Params
+    PARM,
 
     fn str(self: ChunkTag) [4]u8 {
         return switch (self) {
@@ -125,24 +94,11 @@ pub fn load(
             .ARRS => try readArrangerState(r, arranger, version, len),
             .BPAT => try readBassPatterns(r, bpat, version, len),
             .DPAT => try readDrumPatterns(r, dpat, version, len),
-            .PTC1 => try readPatch(r, &params.bass1, version, len),
-            .PTC2 => try readPatch(r, &params.bass2, version, len),
             .ARR1 => try readArr(r, arr1, version, len),
             .ARR2 => try readArr(r, arr2, version, len),
             .ARR3 => try readArr(r, arr3, version, len),
-            .TMPO => try readTempo(r, &params.engine.bpm, version, len),
-            .JOYM => try skipLoad(r, len),
             .MXED => try readMixerEditorState(r, mixer_editor, version, len),
-            .MXLV => try readMixerLvls(r, &params.mixer, version, len),
-            .MXPA => try readMixerPans(r, &params.mixer, version, len),
-            .MXSE => try readMixerSends(r, &params.mixer, version, len),
-            .MXDU => try readMixerDuckings(r, &params.mixer, version, len),
-            .DRMM => try readDrumMutes(r, &params.drums.mutes, version, len),
-            .DLPR => try readDelayParams(r, &params.delay, version, len),
-            .DUPR => try readDuckerParams(r, &params.drums, version, len),
-            .MADR => try readMasterDrive(r, &params.engine.drive, version, len),
-            .DADI => try readDrumAccentDiff(r, &params.drums.non_accent_level, version, len),
-            .DKIT => try readDrumKitId(r, &params.drums.kit, version, len),
+            .PARM => try readParams(r, params, version, len),
         }
     }
 }
@@ -152,126 +108,52 @@ fn skipLoad(r: std.io.AnyReader, len: usize) !void {
     try r.skipBytes(len, .{});
 }
 
-fn readDrumKitId(r: std.io.AnyReader, kit_id: *Kit.Id, version: u16, len: u16) !void {
+fn readParams(r: std.io.AnyReader, params: *Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
-            if (len != 2) return error.DrumAccentDiffBadLen;
+            if (len != 71) return error.BadParamLen;
+
+            // Engine (3)
+            params.engine.set(.bpm, try r.readInt(i16, .little));
+            params.engine.set(.drive, try r.readInt(u8, .little));
+
+            // Bass synths (27)
+            try readBassPatch(r, &params.bass1);
+            try readBassPatch(r, &params.bass2);
+
+            // Drums (32)
+            params.drums.set(.non_accent_level, try r.readInt(u8, .little));
             var kitnamebuf: [2]u8 = undefined;
             try r.readNoEof(&kitnamebuf);
             const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumKitBadId;
-            kit_id.* = kit;
-        },
-        else => return error.DrumKitBadVersion,
-    }
-}
+            params.drums.set(.kit, kit);
+            params.drums.set(.duck_time, try r.readInt(u8, .little));
+            params.drums.set(.mutes, @bitCast(try r.readInt(u8, .little)));
 
-fn readDrumAccentDiff(r: std.io.AnyReader, dadi: *u8, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 1) return error.DrumAccentDiffBadLen;
-            @atomicStore(u8, dadi, try r.readInt(u8, .little), .seq_cst);
-        },
-        else => return error.DrumAccentDiffBadVersion,
-    }
-}
+            // Delay (35)
+            params.delay.set(.time, try r.readInt(u8, .little));
+            params.delay.set(.feedback, try r.readInt(u8, .little));
+            params.delay.set(.duck, try r.readInt(u8, .little));
 
-fn readMasterDrive(r: std.io.AnyReader, master_drive: *u8, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 1) return error.MasterDriveBadLen;
-            @atomicStore(u8, master_drive, try r.readInt(u8, .little), .seq_cst);
-        },
-        else => return error.MasterDriveBadVersion,
-    }
-}
-
-fn readDuckerParams(r: std.io.AnyReader, drums: *DrumMachine.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 1) return error.DuckerParamsBadLen;
-            drums.set(.duck_time, try r.readInt(u8, .little));
-        },
-        else => return error.DuckerParamsBadVersion,
-    }
-}
-
-fn readDelayParams(r: std.io.AnyReader, delay: *StereoFeedbackDelay.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 2) return error.DelayParamsBadLen;
-            delay.set(.time, try r.readInt(u8, .little));
-            delay.set(.feedback, try r.readInt(u8, .little));
-        },
-        2 => {
-            if (len != 3) return error.DelayParamsBadLen;
-            delay.set(.time, try r.readInt(u8, .little));
-            delay.set(.feedback, try r.readInt(u8, .little));
-            delay.set(.duck, try r.readInt(u8, .little));
-        },
-        else => return error.DelayParamsBadVersion,
-    }
-}
-
-fn readDrumMutes(r: std.io.AnyReader, mutes: *DrumMachine.Mutes, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 1) return error.DrumMutesBadLen;
-            mutes.* = @bitCast(try r.readInt(u8, .little));
-        },
-        else => return error.DrumMutesBadVersion,
-    }
-}
-
-fn readMixerLvls(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != Mixer.nchannels) return error.MixerLevelsBadLen;
-
+            // Mixer (71)
             for (0..Mixer.nchannels) |i| {
-                mixer[i].set(.level, try r.readInt(u8, .little));
+                params.mixer[i].set(.level, try r.readInt(u8, .little));
+                params.mixer[i].set(.pan, try r.readInt(u8, .little));
+                params.mixer[i].set(.send, try r.readInt(u8, .little));
+                params.mixer[i].set(.duck, try r.readInt(u8, .little));
             }
         },
-        else => return error.MixerLevelsBadVersion,
+        else => return error.BadParamVersion,
     }
 }
 
-fn readMixerDuckings(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != Mixer.nchannels) return error.MixerDuckingsBadLen;
-
-            for (0..Mixer.nchannels) |i| {
-                mixer[i].set(.duck, try r.readInt(u8, .little));
-            }
-        },
-        else => return error.MixerDuckingsBadVersion,
-    }
-}
-
-fn readMixerSends(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != Mixer.nchannels) return error.MixerSendsBadLen;
-
-            for (0..Mixer.nchannels) |i| {
-                mixer[i].set(.send, try r.readInt(u8, .little));
-            }
-        },
-        else => return error.MixerSendsBadVersion,
-    }
-}
-
-fn readMixerPans(r: std.io.AnyReader, mixer: *[Mixer.nchannels]Mixer.Channel.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != Mixer.nchannels) return error.MixerPansBadLen;
-
-            for (0..Mixer.nchannels) |i| {
-                mixer[i].set(.pan, try r.readInt(u8, .little));
-            }
-        },
-        else => return error.MixerPansBadVersion,
-    }
+fn readBassPatch(r: std.io.AnyReader, params: *PDBass.Params) !void {
+    params.set(.timbre, try readFloat01(r));
+    params.set(.mod_depth, try readFloat01(r));
+    params.set(.res, try readFloat01(r));
+    params.set(.feedback, try readFloat01(r));
+    params.set(.decay, try readFloat01(r));
+    params.set(.accentness, try readFloat01(r));
 }
 
 fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerEditor, version: u16, len: u16) !void {
@@ -294,17 +176,6 @@ fn readMixerEditorState(r: std.io.AnyReader, mixer_editor: *MixerEditor, version
             }
         },
         else => return error.MixerEditorStateBadVersion,
-    }
-}
-
-fn readTempo(r: std.io.AnyReader, tempo: *f32, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 2) return error.TempoBadLen;
-            const uint_tempo = try r.readInt(u16, .little);
-            tempo.* = @floatFromInt(uint_tempo);
-        },
-        else => return error.TempoBadVersion,
     }
 }
 
@@ -393,21 +264,6 @@ fn readDrumPattern2(r: std.io.AnyReader, pattern: *DrumPattern) !void {
     }
 }
 
-fn readPatch(r: std.io.AnyReader, params: *PDBass.Params, version: u16, len: u16) !void {
-    switch (version) {
-        1 => {
-            if (len != 6 * 2) return error.BadPatchLen;
-            params.set(.timbre, try readFloat01(r));
-            params.set(.mod_depth, try readFloat01(r));
-            params.set(.res, try readFloat01(r));
-            params.set(.feedback, try readFloat01(r));
-            params.set(.decay, try readFloat01(r));
-            params.set(.accentness, try readFloat01(r));
-        },
-        else => return error.PatchBadVersion,
-    }
-}
-
 fn readFloat01(r: std.io.AnyReader) !f32 {
     return @as(f32, @floatFromInt(try r.readInt(u16, .little))) / 0xffff;
 }
@@ -469,12 +325,37 @@ pub fn save(
     }
     try handle.finalize(w);
 
-    handle = beginChunk(.PTC1, 1);
-    try writeBassParams(handle.w.writer().any(), &params.bass1);
-    try handle.finalize(w);
+    handle = beginChunk(.PARM, 1);
+    {
+        const hw = handle.w.writer().any();
 
-    handle = beginChunk(.PTC2, 1);
-    try writeBassParams(handle.w.writer().any(), &params.bass2);
+        // engine
+        try hw.writeInt(i16, params.engine.get(.bpm), .little);
+        try hw.writeInt(u8, params.engine.get(.drive), .little);
+
+        // Bass synths
+        try writeBassParams(hw, &params.bass1);
+        try writeBassParams(hw, &params.bass2);
+
+        // Drums
+        try hw.writeInt(u8, params.drums.get(.non_accent_level), .little);
+        try hw.writeAll(@tagName(params.drums.get(.kit)));
+        try hw.writeInt(u8, params.drums.get(.duck_time), .little);
+        try hw.writeInt(u8, @bitCast(params.drums.get(.mutes)), .little);
+
+        // Delay
+        try hw.writeInt(u8, params.delay.get(.time), .little);
+        try hw.writeInt(u8, params.delay.get(.feedback), .little);
+        try hw.writeInt(u8, params.delay.get(.duck), .little);
+
+        // Mixer
+        for (0..Mixer.nchannels) |i| {
+            try hw.writeInt(u8, params.mixer[i].get(.level), .little);
+            try hw.writeInt(u8, params.mixer[i].get(.pan), .little);
+            try hw.writeInt(u8, params.mixer[i].get(.send), .little);
+            try hw.writeInt(u8, params.mixer[i].get(.duck), .little);
+        }
+    }
     try handle.finalize(w);
 
     handle = beginChunk(.ARRS, 1);
@@ -482,14 +363,6 @@ pub fn save(
         const hw = handle.w.writer().any();
         try hw.writeInt(u8, arranger.column, .little);
         try hw.writeInt(u8, arranger.row, .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.TMPO, 1);
-    {
-        const hw = handle.w.writer().any();
-        const int_tempo: u16 = @intFromFloat(@round(@min(65535, @max(0, params.engine.get(.bpm)))));
-        try hw.writeInt(u16, int_tempo, .little);
     }
     try handle.finalize(w);
 
@@ -507,71 +380,6 @@ pub fn save(
         };
         try hw.writeInt(u8, row_ch, .little);
     }
-    try handle.finalize(w);
-
-    handle = beginChunk(.MXLV, 1);
-    {
-        const hw = handle.w.writer().any();
-
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.level), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.MXPA, 1);
-    {
-        const hw = handle.w.writer().any();
-
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.pan), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.MXSE, 1);
-    {
-        const hw = handle.w.writer().any();
-
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.send), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.MXDU, 1);
-    {
-        const hw = handle.w.writer().any();
-
-        for (0..Mixer.nchannels) |i| try hw.writeInt(u8, params.mixer[i].get(.duck), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.DLPR, 2);
-    {
-        const hw = handle.w.writer().any();
-
-        try hw.writeInt(u8, params.delay.get(.time), .little);
-        try hw.writeInt(u8, params.delay.get(.feedback), .little);
-        try hw.writeInt(u8, params.delay.get(.duck), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.DUPR, 1);
-    {
-        const hw = handle.w.writer().any();
-        try hw.writeInt(u8, params.drums.get(.duck_time), .little);
-    }
-    try handle.finalize(w);
-
-    handle = beginChunk(.DRMM, 1);
-    try handle.w.writer().any().writeInt(u8, @bitCast(params.drums.get(.mutes)), .little);
-    try handle.finalize(w);
-
-    handle = beginChunk(.MADR, 1);
-    try handle.w.writer().any().writeInt(u8, params.engine.get(.drive), .little);
-    try handle.finalize(w);
-
-    handle = beginChunk(.DADI, 1);
-    try handle.w.writer().any().writeInt(u8, params.drums.get(.non_accent_level), .little);
-    try handle.finalize(w);
-
-    handle = beginChunk(.DKIT, 1);
-    try handle.w.writer().any().writeAll(@tagName(params.drums.get(.kit)));
     try handle.finalize(w);
 }
 
