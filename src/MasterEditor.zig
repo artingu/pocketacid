@@ -63,12 +63,12 @@ pub const U8Entry = struct {
 
     fn inc(self: U8Entry, by: u8) void {
         const prev = @atomicLoad(u8, self.ptr, .seq_cst);
-        @atomicStore(u8, self.ptr, prev +| by, .seq_cst);
+        _ = @cmpxchgStrong(u8, self.ptr, prev, prev +| by, .seq_cst, .seq_cst);
     }
 
     fn dec(self: U8Entry, by: u8) void {
         const prev = @atomicLoad(u8, self.ptr, .seq_cst);
-        @atomicStore(u8, self.ptr, prev -| by, .seq_cst);
+        _ = @cmpxchgStrong(u8, self.ptr, prev, prev -| by, .seq_cst, .seq_cst);
     }
 };
 
@@ -143,7 +143,7 @@ pub fn EnumEntry(comptime E: type) type {
 
                     self.ptr.* = values[new_idx];
 
-                    @atomicStore(E, self.ptr, values[new_idx], .seq_cst);
+                    _ = @cmpxchgStrong(E, self.ptr, current, values[new_idx], .seq_cst, .seq_cst);
                 },
             }
         }
@@ -156,7 +156,7 @@ pub fn EnumEntry(comptime E: type) type {
                     const idx = comptime std.mem.indexOfScalar(E, values, v) orelse @compileError("bad EnumEntry enum value");
                     const new_idx: usize = if (idx == values.len - 1) values.len - 1 else idx + 1;
 
-                    @atomicStore(E, self.ptr, values[new_idx], .seq_cst);
+                    _ = @cmpxchgStrong(E, self.ptr, current, values[new_idx], .seq_cst, .seq_cst);
                 },
             }
         }

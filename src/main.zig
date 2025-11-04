@@ -284,20 +284,20 @@ fn handleParams(ux: f32, uy: f32, dt: f32, mode: JoyMode, params: *PDBass.Params
         .timbre_mod => {
             const prevx = params.get(.mod_depth);
             const prevy = params.get(.timbre);
-            params.set(.mod_depth, @min(1, @max(0, x + prevx)));
-            params.set(.timbre, @min(1, @max(0, prevy - y)));
+            params.setCmp(.mod_depth, @min(1, @max(0, x + prevx)), prevx);
+            params.setCmp(.timbre, @min(1, @max(0, prevy - y)), prevy);
         },
         .res_feedback => {
             const prevx = params.get(.feedback);
             const prevy = params.get(.res);
-            params.set(.feedback, @min(1, @max(0, x + prevx)));
-            params.set(.res, @min(1, @max(0, prevy - y)));
+            params.setCmp(.feedback, @min(1, @max(0, x + prevx)), prevx);
+            params.setCmp(.res, @min(1, @max(0, prevy - y)), prevy);
         },
         .decay_accent => {
             const prevx = params.get(.accentness);
             const prevy = params.get(.decay);
-            params.set(.accentness, @min(1, @max(0, x + prevx)));
-            params.set(.decay, @min(1, @max(0, prevy - y)));
+            params.setCmp(.accentness, @min(1, @max(0, x + prevx)), prevx);
+            params.setCmp(.decay, @min(1, @max(0, prevy - y)), prevy);
         },
     }
 }

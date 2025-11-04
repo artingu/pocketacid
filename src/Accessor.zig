@@ -36,6 +36,30 @@ pub fn Accessor(comptime T: type) type {
                 @atomicStore(FT, &@field(self, @tagName(field)), value, .seq_cst);
         }
 
+        // Only set if the value hasn't changed since first accessing it
+        pub inline fn setCmp(self: *T, comptime field: E, value: FieldType(T, field), old: FieldType(T, field)) void {
+            const FT = FieldType(T, field);
+
+            const ti = @typeInfo(FT);
+
+            switch (ti) {
+                .float => |fti| {
+                    const IT = std.meta.Int(.unsigned, fti.bits);
+                    _ = @cmpxchgStrong(
+                        IT,
+                        @as(*IT, @ptrCast(&@field(self, @tagName(field)))),
+                        @bitCast(old),
+                        @bitCast(value),
+                        .seq_cst,
+                        .seq_cst,
+                    );
+                },
+                else => {
+                    _ = @cmpxchgStrong(FT, &@field(self, @tagName(field)), old, value, .seq_cst, .seq_cst);
+                },
+            }
+        }
+
         pub fn copy(self: *const T) T {
             var out: T = undefined;
             inline for (std.meta.fields(E)) |f| {
