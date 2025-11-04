@@ -20,6 +20,7 @@ var delay_buf_right: [48000 * 10]f32 = undefined;
 pub const Params = struct {
     bpm: i16 = 120,
     drive: u8 = 0,
+    mutes: DrumMachine.Mutes = .{},
 
     pub usingnamespace Accessor(@This());
 
@@ -56,7 +57,7 @@ ds: DrumSeq = .{
 
 pdbass1: PDBass = .{ .channel = 0, .params = undefined },
 pdbass2: PDBass = .{ .channel = 1, .params = undefined },
-drums: DrumMachine = .{ .channel = 2, .params = undefined },
+drums: DrumMachine = .{ .channel = 2, .params = undefined, .mutes = undefined },
 
 delay: StereoFeedbackDelay = .{
     .left = .{ .delay = .{ .buffer = &delay_buf_left } },
@@ -103,6 +104,8 @@ pub fn init(self: *@This(), params: *GlobalParams) void {
     self.bs1.midibuf = self.midibuf;
     self.bs2.midibuf = self.midibuf;
     self.ds.midibuf = self.midibuf;
+
+    self.drums.mutes = &self.params.mutes;
 }
 
 pub fn resetDelay(self: *@This()) void {
@@ -151,8 +154,8 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
 
     self.phase += 24 * bpm / (60 * srate);
     while (self.phase >= 1) {
-        self.bs1.tick();
-        self.bs2.tick();
+        self.bs1.tick(self.params.mutes.get(.b1));
+        self.bs2.tick(self.params.mutes.get(.b2));
         if (self.ds.tick()) |row| {
             if (song.snapshots[row].active() and row != self.snapshot_row) {
                 self.snapshot_row = row;

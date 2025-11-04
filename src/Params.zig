@@ -38,6 +38,7 @@ pub fn assume(self: *@This(), other: *const @This()) void {
 
 pub fn assumeNoTempo(self: *@This(), other: *const @This()) void {
     self.engine.set(.drive, other.engine.get(.drive));
+    self.engine.set(.mutes, other.engine.get(.mutes));
     self.bass1.assume(other.bass1.copy());
     self.bass2.assume(other.bass2.copy());
     self.drums.assume(other.drums.copy());

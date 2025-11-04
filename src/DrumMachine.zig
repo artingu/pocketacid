@@ -7,14 +7,16 @@ const Accessor = @import("Accessor.zig").Accessor;
 const Ducker = @import("Ducker.zig");
 
 pub const Mutes = packed struct(u8) {
-    pub const Group = enum { bd, sd, hhcy, tm };
+    pub const Group = enum { bd, sd, hhcy, tm, b1, b2 };
 
     bd: bool = false,
     sd: bool = false,
     hhcy: bool = false,
     tm: bool = false,
+    b1: bool = false,
+    b2: bool = false,
 
-    _: u4 = 0,
+    _: u2 = 0,
 
     pub fn toggle(self: *Mutes, comptime group: Group) void {
         var new = @atomicLoad(Mutes, self, .seq_cst);
@@ -35,12 +37,12 @@ pub const Params = struct {
     non_accent_level: u8 = 0xc0,
     kit: Kit.Id = .R6,
     duck_time: u8 = 0x20,
-    mutes: Mutes = .{},
     pub usingnamespace Accessor(@This());
 };
 
 channel: u4,
 params: *const Params,
+mutes: *Mutes,
 
 ducker: Ducker = .{},
 
@@ -74,11 +76,10 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             else
                 1;
 
-            const mutes = self.params.get(.mutes);
-            const bdm = mutes.get(.bd);
-            const sdm = mutes.get(.sd);
-            const hhcym = mutes.get(.hhcy);
-            const tmm = mutes.get(.tm);
+            const bdm = self.mutes.get(.bd);
+            const sdm = self.mutes.get(.sd);
+            const hhcym = self.mutes.get(.hhcy);
+            const tmm = self.mutes.get(.tm);
 
             const kit = self.params.get(.kit).resolve();
 

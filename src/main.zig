@@ -177,10 +177,12 @@ pub fn main() !void {
             if (trig.repeat.down) params.engine.changeTempo(-10);
             if (trig.repeat.left) params.engine.changeTempo(-1);
             if (trig.repeat.right) params.engine.changeTempo(1);
-            if (trig.press.x) params.drums.mutes.toggle(.bd);
-            if (trig.press.y) params.drums.mutes.toggle(.sd);
-            if (trig.press.b) params.drums.mutes.toggle(.hhcy);
-            if (trig.press.a) params.drums.mutes.toggle(.tm);
+            if (trig.press.x) params.engine.mutes.toggle(.bd);
+            if (trig.press.y) params.engine.mutes.toggle(.sd);
+            if (trig.press.b) params.engine.mutes.toggle(.hhcy);
+            if (trig.press.a) params.engine.mutes.toggle(.tm);
+            if (trig.press.l3) params.engine.mutes.toggle(.b1);
+            if (trig.press.r3) params.engine.mutes.toggle(.b2);
             if (trig.press.select and !mixer) clipboard.copy(&arranger);
             if (trig.press.start and !mixer) clipboard.paste(&arranger);
         } else {
@@ -229,7 +231,7 @@ pub fn main() !void {
                                 dt,
                                 false,
                                 pi[arranger.column],
-                                params.drums.get(.mutes),
+                                params.engine.get(.mutes),
                             );
                         },
                         else => {},
@@ -254,7 +256,7 @@ pub fn main() !void {
                                 dt,
                                 true,
                                 pi[arranger.column],
-                                params.drums.get(.mutes),
+                                params.engine.get(.mutes),
                             );
                         },
                         else => {},
@@ -265,13 +267,12 @@ pub fn main() !void {
 
             const lxy = j_mode.values(&params.bass1);
             const rxy = j_mode.values(&params.bass2);
-            tm.print(1, 20, colors.inactive, "{s: <14}{x:0>2}/{x:0>2}    {x:0>2}/{x:0>2}", .{
-                j_mode.str(),
-                lxy.y,
-                lxy.x,
-                rxy.y,
-                rxy.x,
-            });
+            tm.print(1, 20, colors.inactive, "{s: <14}", .{j_mode.str()});
+
+            const lcolor = if (params.engine.mutes.get(.b1)) colors.hilight else colors.inactive;
+            const rcolor = if (params.engine.mutes.get(.b2)) colors.hilight else colors.inactive;
+            tm.print(15, 20, lcolor, "{x:0>2}/{x:0>2}", .{ lxy.y, lxy.x });
+            tm.print(24, 20, rcolor, "{x:0>2}/{x:0>2}", .{ rxy.y, rxy.x });
         }
 
         sys.preRender();

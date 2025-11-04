@@ -53,7 +53,7 @@ fn maybeNoteOff(self: *BassSeq) void {
         } });
     }
 }
-pub fn tick(self: *BassSeq) void {
+pub fn tick(self: *BassSeq, muted: bool) void {
     if (!self.running) return;
 
     self.updatePlaybackInfo();
@@ -61,9 +61,10 @@ pub fn tick(self: *BassSeq) void {
         0 => {
             self.curstep = self.patterns.*[self.current_pattern].steps[self.step].copy();
             if (self.curstep.midi(self.patterns.*[self.current_pattern].getBase())) |curpitch|
-                self.noteOn(curpitch, if (self.curstep.accent) 127 else 63);
+                if (!muted)
+                    self.noteOn(curpitch, if (self.curstep.accent) 127 else 63);
         },
-        3 => if (!self.curstep.slide) self.maybeNoteOff(),
+        3 => if (muted or !self.curstep.slide) self.maybeNoteOff(),
         else => {},
     }
 

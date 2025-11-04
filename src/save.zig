@@ -143,6 +143,7 @@ fn bareReadParams(r: std.io.AnyReader, params: *Params) !void {
     // Engine (3)
     params.engine.set(.bpm, try r.readInt(i16, .little));
     params.engine.set(.drive, try r.readInt(u8, .little));
+    params.engine.set(.mutes, @bitCast(try r.readInt(u8, .little)));
 
     // Bass synths (27)
     try readBassPatch(r, &params.bass1);
@@ -155,7 +156,6 @@ fn bareReadParams(r: std.io.AnyReader, params: *Params) !void {
     const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumKitBadId;
     params.drums.set(.kit, kit);
     params.drums.set(.duck_time, try r.readInt(u8, .little));
-    params.drums.set(.mutes, @bitCast(try r.readInt(u8, .little)));
 
     // Delay (35)
     params.delay.set(.time, try r.readInt(u8, .little));
@@ -394,6 +394,7 @@ fn writeParams(w: std.io.AnyWriter, params: *const Params) !void {
     // engine
     try w.writeInt(i16, params.engine.get(.bpm), .little);
     try w.writeInt(u8, params.engine.get(.drive), .little);
+    try w.writeInt(u8, @bitCast(params.engine.get(.mutes)), .little);
 
     // Bass synths
     try writeBassParams(w, &params.bass1);
@@ -403,7 +404,6 @@ fn writeParams(w: std.io.AnyWriter, params: *const Params) !void {
     try w.writeInt(u8, params.drums.get(.non_accent_level), .little);
     try w.writeAll(@tagName(params.drums.get(.kit)));
     try w.writeInt(u8, params.drums.get(.duck_time), .little);
-    try w.writeInt(u8, @bitCast(params.drums.get(.mutes)), .little);
 
     // Delay
     try w.writeInt(u8, params.delay.get(.time), .little);
