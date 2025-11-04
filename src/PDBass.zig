@@ -41,12 +41,21 @@ prev_res: f32 = 0,
 mod_env: ADEnv = .{},
 prev_gate: bool = false,
 
-accentness_smooth: Smoother = .{},
 bend_smooth: Smoother = .{},
+
+accentness_smooth: Smoother = .{},
 res_smooth: Smoother = .{},
 timbre_smooth: Smoother = .{},
 feedback_smooth: Smoother = .{},
 mod_smooth: Smoother = .{},
+
+pub fn short(self: *PDBass) void {
+    self.accentness_smooth.short(self.params.get(.accentness));
+    self.timbre_smooth.short(self.params.get(.timbre));
+    self.res_smooth.short(self.params.get(.res));
+    self.mod_smooth.short(self.params.get(.mod_depth));
+    self.feedback_smooth.short(self.params.get(.feedback));
+}
 
 pub inline fn next(self: *PDBass, srate: f32) f32 {
     const accentness_raw = self.accentness_smooth.next(self.params.get(.accentness), param_smooth_time, srate);

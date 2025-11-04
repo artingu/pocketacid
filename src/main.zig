@@ -67,6 +67,8 @@ pub fn main() !void {
     // .{ .Foo = .{ .label = "foo test:      ", .ptr = &foo } },
 
     var arranger = Arranger{
+        .params = &params,
+        .snapshots = &song.snapshots,
         .columns = &[_]*[256]u8{
             &song.bass1_arrange,
             &song.bass2_arrange,
@@ -90,6 +92,7 @@ pub fn main() !void {
             &song.drum_patterns,
             &arranger,
             &mixer_editor,
+            &song.snapshots,
         );
     }
 
@@ -111,6 +114,7 @@ pub fn main() !void {
                 &song.drum_patterns,
                 &arranger,
                 &mixer_editor,
+                &song.snapshots,
             ) catch break :saveblock;
             cwd.rename(savename ++ ".tmp", savename) catch {};
         }

@@ -31,10 +31,12 @@ pub const Params = struct {
 };
 
 midibuf: *MidiBuf,
-params: *const Params = undefined,
+params: *Params = undefined,
+global_params: *GlobalParams = undefined,
 
 phase: f32 = 0,
 startrow: u8 = 0,
+snapshot_row: ?u8 = null,
 
 bs1: BassSeq = .{
     .patterns = &song.bass_patterns,
@@ -86,11 +88,12 @@ const Cmd = packed struct {
     _: u6 = 0,
 };
 
-pub fn init(self: *@This(), params: *const GlobalParams) void {
+pub fn init(self: *@This(), params: *GlobalParams) void {
     for (0..delay_buf_left.len) |i| delay_buf_left[i] = 0;
     for (0..delay_buf_right.len) |i| delay_buf_right[i] = 0;
     for (0..Mixer.nchannels) |i| self.mixer.channels[i].params = &params.mixer[i];
 
+    self.global_params = params;
     self.params = &params.engine;
     self.pdbass1.params = &params.bass1;
     self.pdbass2.params = &params.bass2;
@@ -118,12 +121,14 @@ pub fn everyBuffer(self: *@This()) void {
                 self.bs1.stop();
                 self.bs2.stop();
                 self.ds.stop();
+                self.snapshot_row = null;
             } else {
                 @atomicStore(bool, &self.running, true, .seq_cst);
                 self.phase = 1;
                 self.bs1.start(cmd.row);
                 self.bs2.start(cmd.row);
                 self.ds.start(cmd.row);
+                self.snapshot_row = null;
             }
         },
         .enqueue => {
@@ -148,7 +153,15 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
     while (self.phase >= 1) {
         self.bs1.tick();
         self.bs2.tick();
-        self.ds.tick();
+        if (self.ds.tick()) |row| {
+            if (song.snapshots[row].active() and row != self.snapshot_row) {
+                self.snapshot_row = row;
+                self.global_params.assumeNoTempo(&song.snapshots[row].params);
+                self.drums.ducker.current = 1;
+                self.pdbass1.short();
+                self.pdbass2.short();
+            }
+        }
         self.phase -= 1;
     }
     for (self.midibuf.emit()) |event| {

@@ -4,11 +4,16 @@ const Attrib = @import("CharDisplay.zig").Attrib;
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
+const Snapshot = @import("Snapshot.zig");
 const colors = @import("colors.zig");
+const Params = @import("Params.zig");
 
 const height = 17;
 
 columns: []const *[256]u8,
+snapshots: *[256]Snapshot,
+params: *Params,
+
 column: u8 = 0,
 row: u8 = 0,
 blink: f32 = 0,
@@ -33,6 +38,16 @@ pub fn handle(self: *Arranger, input: InputState) void {
     const over_addr = &self.columns[self.column].*[self.row];
     const curval = @atomicLoad(u8, over_addr, .seq_cst);
     if (input.hold.any()) self.blink = 0;
+
+    if (input.hold.y) {
+        if (input.press.up) self.snapshots[self.row].upload(self.params);
+        if (input.press.down and self.snapshots[self.row].active())
+            self.params.assumeNoTempo(&self.snapshots[self.row].params);
+        if (input.press.b) self.snapshots[self.row].delete();
+
+        self.changed = false;
+        return;
+    }
 
     if (input.press.a) {
         if (curval == 0xff) {
@@ -167,6 +182,7 @@ pub fn display(
                 else
                     tm.print(x + xoffset * 2, y + yoffset, color, "{x:0>2}", .{val});
             }
+            if (self.snapshots[uidx].active()) tm.puts(x + 8, y + yoffset, colors.inactive, "\xf0");
         }
     }
 

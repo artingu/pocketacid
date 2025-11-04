@@ -24,8 +24,8 @@ channel: u4,
 
 const choh = 36;
 
-pub fn tick(self: *DrumSeq) void {
-    if (!self.running) return;
+pub fn tick(self: *DrumSeq) ?u8 {
+    if (!self.running) return null;
 
     const pattern = &self.patterns.*[self.current_pattern];
     const step = pattern.steps[self.step].copy();
@@ -39,6 +39,8 @@ pub fn tick(self: *DrumSeq) void {
         self.trig(step, 63);
         self.trig(step, 0);
     }
+
+    const ret = self.arrangement_idx;
 
     self.steptick += 1;
     if (self.steptick >= 6) {
@@ -63,6 +65,8 @@ pub fn tick(self: *DrumSeq) void {
             }
         }
     }
+
+    return ret;
 }
 
 fn note(self: *const DrumSeq, p: u7, v: u7) void {

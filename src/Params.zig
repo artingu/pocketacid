@@ -3,6 +3,7 @@ const DrumMachine = @import("DrumMachine.zig");
 const SoundEngine = @import("SoundEngine.zig");
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const Mixer = @import("Mixer.zig");
+const Accessor = @import("Accessor.zig").Accessor;
 
 engine: SoundEngine.Params = .{},
 bass1: PDBass.Params = .{},
@@ -10,3 +11,36 @@ bass2: PDBass.Params = .{},
 drums: DrumMachine.Params = .{},
 delay: StereoFeedbackDelay.Params = .{},
 mixer: [Mixer.nchannels]Mixer.Channel.Params = [1]Mixer.Channel.Params{.{}} ** Mixer.nchannels,
+
+pub fn copy(self: *const @This()) @This() {
+    const mixer: [Mixer.nchannels]Mixer.Channel.Params = undefined;
+    for (0..mixer.len) |i| {
+        mixer[i] = self.mixer[i].copy();
+    }
+    return .{
+        .engine = self.engine.copy(),
+        .bass1 = self.bass1.copy(),
+        .bass2 = self.bass2.copy(),
+        .drums = self.drums.copy(),
+        .delay = self.delay.copy(),
+        .mixer = mixer,
+    };
+}
+
+pub fn assume(self: *@This(), other: *const @This()) void {
+    self.engine.assume(other.engine.copy());
+    self.bass1.assume(other.bass1.copy());
+    self.bass2.assume(other.bass2.copy());
+    self.drums.assume(other.drums.copy());
+    self.delay.assume(other.delay.copy());
+    for (0..Mixer.nchannels) |i| self.mixer[i].assume(other.mixer[i].copy());
+}
+
+pub fn assumeNoTempo(self: *@This(), other: *const @This()) void {
+    self.engine.set(.drive, other.engine.get(.drive));
+    self.bass1.assume(other.bass1.copy());
+    self.bass2.assume(other.bass2.copy());
+    self.drums.assume(other.drums.copy());
+    self.delay.assume(other.delay.copy());
+    for (0..Mixer.nchannels) |i| self.mixer[i].assume(other.mixer[i].copy());
+}
