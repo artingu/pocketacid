@@ -28,10 +28,37 @@ pub inline fn selectedPattern(self: *const Arranger) ?u8 {
     return curval;
 }
 
-pub fn rowEmpty(self: *const Arranger, row: i8) bool {
+pub fn rowEmpty(self: *const Arranger, row: u8) bool {
     for (self.columns) |column|
         if (column.*[row] != 0xff) return false;
     return true;
+}
+
+pub fn nextStart(self: *Arranger) void {
+    var prev_empty = false;
+    for (0..256) |i| {
+        const cur: u8 = self.row +% @as(u8, @intCast(i));
+
+        const cur_empty = self.rowEmpty(cur);
+
+        if (!cur_empty and prev_empty) {
+            self.row = cur;
+            return;
+        }
+
+        prev_empty = cur_empty;
+    }
+}
+pub fn prevStart(self: *Arranger) void {
+    for (1..256) |i| {
+        const cur: u8 = self.row -% @as(u8, @intCast(i));
+        const prev: u8 = cur -% 1;
+
+        if (self.rowEmpty(prev) and !self.rowEmpty(cur)) {
+            self.row = cur;
+            return;
+        }
+    }
 }
 
 pub fn handle(self: *Arranger, input: InputState) void {
@@ -44,6 +71,16 @@ pub fn handle(self: *Arranger, input: InputState) void {
         if (input.press.down and self.snapshots[self.row].active())
             self.params.assumeNoTempo(&self.snapshots[self.row].params);
         if (input.press.b) self.snapshots[self.row].delete();
+
+        self.changed = false;
+        return;
+    }
+
+    if (input.hold.b) {
+        if (input.repeat.up) self.row -%= 16;
+        if (input.repeat.down) self.row +%= 16;
+        if (input.repeat.left) self.prevStart();
+        if (input.repeat.right) self.nextStart();
 
         self.changed = false;
         return;
@@ -63,10 +100,6 @@ pub fn handle(self: *Arranger, input: InputState) void {
             self.yank = curval;
             @atomicStore(u8, over_addr, 0xff, .seq_cst);
         }
-    }
-
-    if (input.combo("b")) {
-        @atomicStore(u8, over_addr, 0xff, .seq_cst);
     }
 
     if (input.combo("a+left") and curval != 0xff) {
