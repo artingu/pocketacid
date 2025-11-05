@@ -17,11 +17,15 @@ pub const n_notes = 10;
 
 pub const Id = enum(u7) {
     R6,
+    R7,
+    R8,
     R9,
 
     pub fn resolve(self: Id) *const Kit {
         return switch (self) {
             .R6 => &R6,
+            .R7 => &R7,
+            .R8 => &R8,
             .R9 => &R9,
         };
     }
@@ -56,4 +60,32 @@ pub const R9 = Kit{
     .xx = @embedFile("assets/samples/rs909.raw"),
     .yy = @embedFile("assets/samples/cp909.raw"),
     .choh = oh909,
+};
+
+const oh808 = @embedFile("assets/samples/oh808.raw");
+pub const R8 = Kit{
+    .bd = @embedFile("assets/samples/bd808.raw"),
+    .ch = @embedFile("assets/samples/ch808.raw"),
+    .oh = oh808,
+    .cy = @embedFile("assets/samples/cy808.raw"),
+    .ht = @embedFile("assets/samples/hi808.raw"),
+    .lt = @embedFile("assets/samples/lo808.raw"),
+    .sd = @embedFile("assets/samples/sd808.raw"),
+    .xx = @embedFile("assets/samples/rs808.raw"),
+    .yy = @embedFile("assets/samples/cp808.raw"),
+    .choh = oh808,
+};
+
+const oh707 = @embedFile("assets/samples/oh707.raw");
+pub const R7 = Kit{
+    .bd = @embedFile("assets/samples/bd707.raw"),
+    .ch = @embedFile("assets/samples/ch707.raw"),
+    .oh = oh707,
+    .cy = @embedFile("assets/samples/cy707.raw"),
+    .ht = @embedFile("assets/samples/hi707.raw"),
+    .lt = @embedFile("assets/samples/lo707.raw"),
+    .sd = @embedFile("assets/samples/sd707.raw"),
+    .xx = @embedFile("assets/samples/rs707.raw"),
+    .yy = @embedFile("assets/samples/cp707.raw"),
+    .choh = oh707,
 };
