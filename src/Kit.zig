@@ -35,6 +35,8 @@ pub const Id = enum(u7) {
     }
 };
 
+const rs808 = @embedFile("assets/samples/rs808.raw");
+const cp808 = @embedFile("assets/samples/cp808.raw");
 pub const R6 = Kit{
     .bd = @embedFile("assets/samples/bd606.raw"),
     .ch = @embedFile("assets/samples/ch606.raw"),
@@ -43,8 +45,8 @@ pub const R6 = Kit{
     .ht = @embedFile("assets/samples/hi606.raw"),
     .lt = @embedFile("assets/samples/lo606.raw"),
     .sd = @embedFile("assets/samples/sd606.raw"),
-    .xx = &.{},
-    .yy = &.{},
+    .xx = rs808,
+    .yy = cp808,
     .choh = @embedFile("assets/samples/choh606.raw"),
 };
 
@@ -71,8 +73,8 @@ pub const R8 = Kit{
     .ht = @embedFile("assets/samples/hi808.raw"),
     .lt = @embedFile("assets/samples/lo808.raw"),
     .sd = @embedFile("assets/samples/sd808.raw"),
-    .xx = @embedFile("assets/samples/rs808.raw"),
-    .yy = @embedFile("assets/samples/cp808.raw"),
+    .xx = rs808,
+    .yy = cp808,
     .choh = oh808,
 };
 

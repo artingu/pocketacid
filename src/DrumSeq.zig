@@ -94,8 +94,8 @@ fn trig(self: *const DrumSeq, d: DrumPattern.Step, vel: u7) void {
     if (d.lt) self.note(5, vel);
     if (d.ht) self.note(6, vel);
     if (d.cy) self.note(7, vel);
-    if (d.xx) self.note(8, vel);
-    if (d.yy) self.note(9, vel);
+    if (d.rs) self.note(8, vel);
+    if (d.cp) self.note(9, vel);
 }
 
 inline fn updatePlaybackInfo(self: *DrumSeq) void {

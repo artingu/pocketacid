@@ -141,8 +141,6 @@ pub fn EnumEntry(comptime E: type) type {
                     const idx = comptime std.mem.indexOfScalar(E, values, v) orelse @compileError("bad EnumEntry enum value");
                     const new_idx: usize = if (idx == 0) 0 else idx - 1;
 
-                    self.ptr.* = values[new_idx];
-
                     _ = @cmpxchgStrong(E, self.ptr, current, values[new_idx], .seq_cst, .seq_cst);
                 },
             }

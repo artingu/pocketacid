@@ -1,6 +1,7 @@
 const std = @import("std");
 const Mutes = @import("DrumMachine.zig").Mutes;
 const Kit = @import("Kit.zig");
+const NextPrevEnum = @import("NextPrevEnum.zig").NextPrevEnum;
 
 pub const maxlen = 16;
 
@@ -12,8 +13,8 @@ pub const types = [_]DrumType{
     .lt,
     .ht,
     .cy,
-    .xx,
-    .yy,
+    .rs,
+    .cp,
     .ac,
     .rr,
 };
@@ -26,8 +27,8 @@ pub const Step = packed struct(u16) {
     lt: bool = false,
     ht: bool = false,
     cy: bool = false,
-    xx: bool = false,
-    yy: bool = false,
+    rs: bool = false,
+    cp: bool = false,
     ac: bool = false,
     rr: bool = false,
 
@@ -69,8 +70,8 @@ pub const DrumType = enum {
     lt,
     ht,
     cy,
-    xx,
-    yy,
+    rs,
+    cp,
     ac,
     rr,
 
@@ -83,8 +84,8 @@ pub const DrumType = enum {
             .lt => mutes.get(.tm),
             .ht => mutes.get(.tm),
             .cy => mutes.get(.hhcy),
-            .xx => false,
-            .yy => false,
+            .rs => false,
+            .cp => false,
             .ac => false,
             .rr => false,
         };
@@ -97,37 +98,7 @@ pub const DrumType = enum {
         };
     }
 
-    pub fn next(self: *DrumType) void {
-        self.* = switch (self.*) {
-            .bd => .sd,
-            .sd => .ch,
-            .ch => .oh,
-            .oh => .lt,
-            .lt => .ht,
-            .ht => .cy,
-            .cy => .xx,
-            .xx => .yy,
-            .yy => .ac,
-            .ac => .rr,
-            .rr => .bd,
-        };
-    }
-
-    pub fn prev(self: *DrumType) void {
-        self.* = switch (self.*) {
-            .bd => .rr,
-            .sd => .bd,
-            .ch => .sd,
-            .oh => .ch,
-            .lt => .oh,
-            .ht => .lt,
-            .cy => .ht,
-            .xx => .cy,
-            .yy => .xx,
-            .ac => .yy,
-            .rr => .ac,
-        };
-    }
+    pub usingnamespace NextPrevEnum(@This());
 };
 
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,

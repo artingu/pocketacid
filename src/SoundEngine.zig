@@ -75,8 +75,8 @@ mixer: Mixer = .{ .channels = .{
     .{ .label = "hh", .params = undefined },
     .{ .label = "tm", .params = undefined },
     .{ .label = "cy", .params = undefined },
-    .{ .label = "xx", .params = undefined },
-    .{ .label = "yy", .params = undefined },
+    .{ .label = "rs", .params = undefined },
+    .{ .label = "cp", .params = undefined },
 } },
 
 running: bool = false,
