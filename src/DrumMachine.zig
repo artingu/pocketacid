@@ -7,7 +7,7 @@ const Accessor = @import("Accessor.zig").Accessor;
 const Ducker = @import("Ducker.zig");
 
 pub const Mutes = packed struct(u8) {
-    pub const Group = enum { bd, sd, hhcy, tm, b1, b2 };
+    pub const Group = enum { bd, sd, hhcy, tm, b1, b2, rscp };
 
     bd: bool = false,
     sd: bool = false,
@@ -15,8 +15,9 @@ pub const Mutes = packed struct(u8) {
     tm: bool = false,
     b1: bool = false,
     b2: bool = false,
+    rscp: bool = false,
 
-    _: u2 = 0,
+    _: u1 = 0,
 
     pub fn toggle(self: *Mutes, comptime group: Group) void {
         var new = @atomicLoad(Mutes, self, .seq_cst);
@@ -80,6 +81,7 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
             const sdm = self.mutes.get(.sd);
             const hhcym = self.mutes.get(.hhcy);
             const tmm = self.mutes.get(.tm);
+            const rscpm = self.mutes.get(.rscp);
 
             const kit = self.params.get(.kit).resolve();
 
@@ -95,8 +97,8 @@ pub fn handleMidiEvent(self: *DrumMachine, event: midi.Event) void {
                 5 => if (!tmm) self.lt.trigger(kit.lt, lev),
                 6 => if (!tmm) self.ht.trigger(kit.ht, lev),
                 7 => if (!hhcym) self.cy.trigger(kit.cy, lev),
-                8 => self.xx.trigger(kit.xx, lev),
-                9 => self.yy.trigger(kit.yy, lev),
+                8 => if (!rscpm) self.xx.trigger(kit.xx, lev),
+                9 => if (!rscpm) self.yy.trigger(kit.yy, lev),
                 else => {},
             }
         },

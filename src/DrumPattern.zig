@@ -84,8 +84,8 @@ pub const DrumType = enum {
             .lt => mutes.get(.tm),
             .ht => mutes.get(.tm),
             .cy => mutes.get(.hhcy),
-            .rs => false,
-            .cp => false,
+            .rs => mutes.get(.rscp),
+            .cp => mutes.get(.rscp),
             .ac => false,
             .rr => false,
         };

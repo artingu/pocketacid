@@ -183,6 +183,7 @@ pub fn main() !void {
             if (trig.press.a) params.engine.mutes.toggle(.tm);
             if (trig.press.l2) params.engine.mutes.toggle(.b1);
             if (trig.press.r2) params.engine.mutes.toggle(.b2);
+            if (trig.press.r) params.engine.mutes.toggle(.rscp);
             if (trig.press.select and !mixer) clipboard.copy(&arranger);
             if (trig.press.start and !mixer) clipboard.paste(&arranger);
         } else {
