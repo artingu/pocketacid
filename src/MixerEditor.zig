@@ -1,7 +1,7 @@
 const Mixer = @import("Mixer.zig");
 const TextMatrix = @import("TextMatrix.zig");
 const RGB = @import("rgb.zig").RGB;
-const colors = @import("colors.zig");
+const Theme = @import("Theme.zig");
 const Attrib = @import("CharDisplay.zig").Attrib;
 const InputState = @import("ButtonHandler.zig").States;
 
@@ -37,7 +37,15 @@ selected_row: Row = .lvl,
 
 blink: f32 = 0,
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
+pub fn display(
+    self: *@This(),
+    tm: *TextMatrix,
+    x: usize,
+    y: usize,
+    dt: f32,
+    active: bool,
+    colors: *const Theme,
+) void {
     const on = @mod(self.blink * 4, 1) < 0.5;
 
     const alter = [_]Attrib{
@@ -45,7 +53,7 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
         colors.normal,
     };
 
-    const label_color = if (active) colors.normal else colors.inactive;
+    const label_color = if (active) colors.normal else colors.hilight2;
     tm.puts(x, y + 1, label_color, "\x0d");
     tm.puts(x, y + 3, label_color, "\x12");
     tm.puts(x, y + 4, label_color, "\x1d");
@@ -66,13 +74,13 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
         const hilight_dck = on and sc == i and sr == .dck;
 
         const xo = x + 2 + i * 3;
-        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.inactive, self.mixer.channels[i].label);
-        tm.puts(xo, y + 2, if (active) alter[i % 2] else colors.inactive, "\xc4\xc4");
+        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.hilight2, self.mixer.channels[i].label);
+        tm.puts(xo, y + 2, if (active) alter[i % 2] else colors.hilight2, "\xc4\xc4");
 
-        tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.inactive, "{x:0>2}", .{level});
-        tm.print(xo, y + 4, if (active) invertIf(alter[i % 2], hilight_pan) else colors.inactive, "{x:0>2}", .{pan});
-        tm.print(xo, y + 5, if (active) invertIf(alter[i % 2], hilight_snd) else colors.inactive, "{x:0>2}", .{send});
-        tm.print(xo, y + 6, if (active) invertIf(alter[i % 2], hilight_dck) else colors.inactive, "{x:0>2}", .{duck});
+        tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.hilight2, "{x:0>2}", .{level});
+        tm.print(xo, y + 4, if (active) invertIf(alter[i % 2], hilight_pan) else colors.hilight2, "{x:0>2}", .{pan});
+        tm.print(xo, y + 5, if (active) invertIf(alter[i % 2], hilight_snd) else colors.hilight2, "{x:0>2}", .{send});
+        tm.print(xo, y + 6, if (active) invertIf(alter[i % 2], hilight_dck) else colors.hilight2, "{x:0>2}", .{duck});
     }
 
     self.blink = @mod(self.blink + dt, 1);

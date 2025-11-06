@@ -1,7 +1,6 @@
 const std = @import("std");
 const sdl = @import("sdl.zig");
 const song = @import("song.zig");
-const colors = @import("colors.zig");
 
 const Sys = @import("Sys.zig");
 const TextMatrix = @import("TextMatrix.zig");
@@ -104,8 +103,9 @@ pub fn main() !void {
         .{ .u8 = .{ .label = "delay feedback:", .ptr = &params.delay.feedback } },
         .{ .u8 = .{ .label = "delay duck:    ", .ptr = &params.delay.duck } },
         .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
+        .spacer,
+        .{ .Theme = .{ .label = "theme:", .ptr = &config.theme } },
     } };
-    // .{ .Foo = .{ .label = "foo test:      ", .ptr = &foo } },
 
     var arranger = Arranger{
         .params = &params,
@@ -174,6 +174,7 @@ pub fn main() !void {
     defer cm.closeAll();
 
     mainloop: while (true) {
+        const colors = config.theme.resolve();
         const current_t = sdl.getPerformanceCounter();
         const dt: f32 = @floatCast(@as(f64, @floatFromInt(current_t -% last_t)) / perf_freq);
         last_t = current_t;
@@ -248,8 +249,8 @@ pub fn main() !void {
             if (trig.press.r) mixer_channels = !mixer_channels;
             mixer_editor.handle(trig, mixer_channels);
             master_editor.handle(trig, !mixer_channels);
-            mixer_editor.display(&tm, 1, 14, dt, mixer_channels);
-            master_editor.display(&tm, 1, 1, dt, !mixer_channels);
+            mixer_editor.display(&tm, 1, 14, dt, mixer_channels, colors);
+            master_editor.display(&tm, 1, 1, dt, !mixer_channels, colors);
         } else {
             if (!globalkey and trig.comboPress("r")) arrange = !arrange;
             if (arrange) {
@@ -259,7 +260,7 @@ pub fn main() !void {
                     switch (arranger.column) {
                         0, 1 => {
                             bass_editor.setPattern(p);
-                            bass_editor.display(&tm, 10, 1, dt, false, pi[arranger.column]);
+                            bass_editor.display(&tm, 10, 1, dt, false, pi[arranger.column], colors);
                         },
                         2 => {
                             drum_editor.setPattern(p);
@@ -271,19 +272,20 @@ pub fn main() !void {
                                 false,
                                 pi[arranger.column],
                                 params.engine.get(.mutes),
+                                colors,
                             );
                         },
                         else => {},
                     }
                 }
-                arranger.display(&tm, 1, 2, dt, true, pi, qi);
+                arranger.display(&tm, 1, 2, dt, true, pi, qi, colors);
             } else {
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {
                             bass_editor.setPattern(p);
                             if (!globalkey) bass_editor.handle(trig);
-                            bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column]);
+                            bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column], colors);
                         },
                         2 => {
                             drum_editor.setPattern(p);
@@ -296,20 +298,21 @@ pub fn main() !void {
                                 true,
                                 pi[arranger.column],
                                 params.engine.get(.mutes),
+                                colors,
                             );
                         },
                         else => {},
                     }
                 }
-                arranger.display(&tm, 1, 2, 0, false, pi, qi);
+                arranger.display(&tm, 1, 2, 0, false, pi, qi, colors);
             }
 
             const lxy = j_mode.values(&params.bass1);
             const rxy = j_mode.values(&params.bass2);
-            tm.print(1, 20, colors.inactive, "{s: <14}", .{j_mode.str()});
+            tm.print(1, 20, colors.hilight2, "{s: <14}", .{j_mode.str()});
 
-            const lcolor = if (params.engine.mutes.get(.b1)) colors.hilight else colors.inactive;
-            const rcolor = if (params.engine.mutes.get(.b2)) colors.hilight else colors.inactive;
+            const lcolor = if (params.engine.mutes.get(.b1)) colors.hilight else colors.hilight2;
+            const rcolor = if (params.engine.mutes.get(.b2)) colors.hilight else colors.hilight2;
             tm.print(15, 20, lcolor, "{x:0>2}/{x:0>2}", .{ lxy.y, lxy.x });
             tm.print(24, 20, rcolor, "{x:0>2}/{x:0>2}", .{ rxy.y, rxy.x });
         }

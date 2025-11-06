@@ -49,11 +49,8 @@ pub fn serialize(d: anytype, w: std.io.AnyWriter) !void {
     }
 }
 
-fn enumString(v: anytype) []u8 {
-    inline for (std.meta.fields(@TypeOf(v))) |f| {
-        if (f.value == v) return f.name;
-    }
-    return error.BadEnumValue;
+fn enumString(v: anytype) []const u8 {
+    return @tagName(v);
 }
 
 fn innerExpect(self: Parser, comptime T: type, string_allocator: ?std.mem.Allocator) !T {

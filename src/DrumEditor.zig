@@ -1,9 +1,10 @@
+const Attrib = @import("CharDisplay.zig").Attrib;
 const InputState = @import("ButtonHandler.zig").States;
 const DrumPattern = @import("DrumPattern.zig");
 const DrumMachine = @import("DrumMachine.zig");
 const TextMatrix = @import("TextMatrix.zig");
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
-const colors = @import("colors.zig");
+const Theme = @import("Theme.zig");
 
 bank: []DrumPattern,
 pattern_idx: u8 = 0,
@@ -43,12 +44,13 @@ pub fn display(
     active: bool,
     pi: PlaybackInfo,
     mutes: DrumMachine.Mutes,
+    colors: *const Theme,
 ) void {
     const current_pattern = self.selectedPattern();
     const current_len = current_pattern.length();
     const on = active and @mod(self.blink * 4, 1) < 0.5;
 
-    tm.print(xo + 3, yo, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
+    tm.print(xo + 3, yo, colors.hilight2, "ptn:{x:0>2}", .{self.pattern_idx});
 
     inline for (DrumPattern.types, 0..) |t, i| {
         tm.puts(xo, yo + 1 + i, if (t.muted(mutes)) colors.hilight else colors.normal, t.str());
@@ -61,14 +63,14 @@ pub fn display(
 
             const playing = pi.pattern == self.pattern_idx and pi.step == column and pi.running;
 
+            const hilight = if (column % 4 == 0) colors.hilight else colors.normal;
+            const bgmix = Attrib{ .bg = hilight.bg, .fg = hilight.fg.interpolate(hilight.bg, 0.9) };
             const base_color = if (playing)
                 colors.playing
             else if (column >= current_len)
-                colors.inactive
-            else if (column % 4 == 0)
-                colors.hilight
+                bgmix
             else
-                colors.normal;
+                hilight;
 
             const do_marker = on and t == self.drumtype and column == self.idx and on;
             const color = if (do_marker)

@@ -1,4 +1,3 @@
-const colors = @import("colors.zig");
 const std = @import("std");
 
 const TextMatrix = @import("TextMatrix.zig");
@@ -6,35 +5,38 @@ const InputState = @import("ButtonHandler.zig").States;
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const Attrib = @import("CharDisplay.zig").Attrib;
 const Kit = @import("Kit.zig");
+const Theme = @import("Theme.zig");
 
 pub const Entry = union(enum) {
     u8: U8Entry,
     Kit: EnumEntry(Kit.Id),
+    Theme: EnumEntry(Theme.Id),
+    spacer,
 
     fn up(self: Entry) void {
         switch (self) {
-            inline else => |e| e.up(),
+            inline else => |e| if (@TypeOf(e) != void) e.up(),
         }
     }
     fn down(self: Entry) void {
         switch (self) {
-            inline else => |e| e.down(),
+            inline else => |e| if (@TypeOf(e) != void) e.down(),
         }
     }
     fn left(self: Entry) void {
         switch (self) {
-            inline else => |e| e.left(),
+            inline else => |e| if (@TypeOf(e) != void) e.left(),
         }
     }
     fn right(self: Entry) void {
         switch (self) {
-            inline else => |e| e.right(),
+            inline else => |e| if (@TypeOf(e) != void) e.right(),
         }
     }
 
     fn display(self: Entry, tm: *TextMatrix, x: usize, y: usize, color: Attrib) void {
         switch (self) {
-            inline else => |e| e.display(tm, x, y, color),
+            inline else => |e| if (@TypeOf(e) != void) e.display(tm, x, y, color),
         }
     }
 };
@@ -77,11 +79,19 @@ menu: []const Entry,
 idx: u8 = 0,
 blink: f32 = 0,
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool) void {
+pub fn display(
+    self: *@This(),
+    tm: *TextMatrix,
+    x: usize,
+    y: usize,
+    dt: f32,
+    active: bool,
+    colors: *const Theme,
+) void {
     const on = @mod(self.blink * 4, 1) < 0.5;
     for (self.menu, 0..) |entry, i| {
         const color = if (!active)
-            colors.inactive
+            colors.hilight2
         else if (i == self.idx)
             invertIf(colors.hilight, on)
         else
@@ -105,8 +115,16 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
         return;
     }
 
-    if (input.repeat.up) self.idx -|= 1;
-    if (input.repeat.down) self.idx = @min(self.menu.len - 1, self.idx + 1);
+    if (input.repeat.up) {
+        self.idx -|= 1;
+        while (self.menu[self.idx] == .spacer and self.idx != 0)
+            self.idx -|= 1;
+    }
+    if (input.repeat.down) {
+        self.idx = @min(self.menu.len - 1, self.idx + 1);
+        while (self.menu[self.idx] == .spacer and self.idx != self.menu.len - 1)
+            self.idx = @min(self.menu.len - 1, self.idx + 1);
+    }
 }
 
 fn invertIf(a: Attrib, condition: bool) Attrib {

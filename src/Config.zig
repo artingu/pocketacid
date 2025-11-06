@@ -1,10 +1,11 @@
 const std = @import("std");
 const Parser = @import("Parser.zig");
 const Tokenizer = @import("Tokenizer.zig");
+const Theme = @import("Theme.zig");
 
 const configname = "settings.cfg";
 
-testing: bool = false,
+theme: Theme.Id = .term,
 
 pub fn load(self: *@This(), dir: std.fs.Dir) !void {
     const file = dir.openFile(configname, .{ .mode = .read_only }) catch |err| {

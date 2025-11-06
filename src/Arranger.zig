@@ -5,7 +5,7 @@ const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
 const Snapshot = @import("Snapshot.zig");
-const colors = @import("colors.zig");
+const Theme = @import("Theme.zig");
 const Params = @import("Params.zig");
 
 const height = 17;
@@ -174,6 +174,7 @@ pub fn display(
     active: bool,
     playback_info: []const PlaybackInfo,
     queued_info: []const ?u8,
+    colors: *const Theme,
 ) void {
     const half_height: isize = height / 2;
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
@@ -183,7 +184,7 @@ pub fn display(
 
         if (idx >= 0 and idx < 256) {
             const uidx: u8 = @intCast(idx);
-            tm.print(x, y + yoffset, colors.inactive, "{x:0>2}", .{uidx});
+            tm.print(x, y + yoffset, colors.hilight2, "{x:0>2}", .{uidx});
 
             for (self.columns, 1..) |column, xoffset| {
                 const val = @atomicLoad(u8, &column.*[uidx], .seq_cst);
@@ -215,7 +216,7 @@ pub fn display(
                 else
                     tm.print(x + xoffset * 2, y + yoffset, color, "{x:0>2}", .{val});
             }
-            if (self.snapshots[uidx].active()) tm.puts(x + 8, y + yoffset, colors.inactive, "\xf0");
+            if (self.snapshots[uidx].active()) tm.puts(x + 8, y + yoffset, colors.hilight2, "\xf0");
         }
     }
 

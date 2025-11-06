@@ -3,8 +3,8 @@ const BassPattern = @import("BassPattern.zig");
 const Step = BassPattern.Step;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
-const colors = @import("colors.zig");
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
+const Theme = @import("Theme.zig");
 
 const NoteInfo = struct {
     str: []const u8,
@@ -258,15 +258,24 @@ fn rotRight(self: *@This()) void {
     }
 }
 
-pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, active: bool, pi: PlaybackInfo) void {
+pub fn display(
+    self: *@This(),
+    tm: *TextMatrix,
+    x: usize,
+    y: usize,
+    dt: f32,
+    active: bool,
+    pi: PlaybackInfo,
+    colors: *const Theme,
+) void {
     const pattern = self.selectedPattern();
     const pattern_len = pattern.length();
     const base = pattern.getBase();
 
     const on = active and @mod(self.blink * 4, 1) < 0.5;
 
-    tm.print(x + 3, y, colors.inactive, "ptn:{x:0>2}", .{self.pattern_idx});
-    tm.print(x + 11, y, colors.inactive, "base:{s:-<2}{}", .{
+    tm.print(x + 3, y, colors.hilight2, "ptn:{x:0>2}", .{self.pattern_idx});
+    tm.print(x + 11, y, colors.hilight2, "base:{s:-<2}{}", .{
         notes[base % 12].str,
         (base / 12) - 1,
     });
@@ -286,18 +295,29 @@ pub fn display(self: *@This(), tm: *TextMatrix, x: usize, y: usize, dt: f32, act
     tm.putch(x + 1, y + 18, colors.normal, 4);
     for (0..BassPattern.maxlen) |i| {
         const playing = pi.pattern == self.pattern_idx and pi.step == i and pi.running;
-        self.column(tm, x + 3 + i, y, i, i < pattern_len, on, playing);
+        self.column(tm, x + 3 + i, y, i, i < pattern_len, on, playing, colors);
     }
 
     self.blink = @mod(self.blink + dt, 1);
 }
 
-fn column(self: *const @This(), tm: *TextMatrix, x: usize, y: usize, idx: usize, active: bool, blink: bool, playing: bool) void {
+fn column(
+    self: *const @This(),
+    tm: *TextMatrix,
+    x: usize,
+    y: usize,
+    idx: usize,
+    active: bool,
+    blink: bool,
+    playing: bool,
+    colors: *const Theme,
+) void {
     const pattern = self.bank[self.pattern_idx];
     const step = pattern.steps[idx].copy();
     const selected = idx == self.idx;
     const hilight: Attrib = if (@as(usize, idx & 0x3) == 0) colors.hilight else colors.normal;
-    const color: Attrib = if (playing) colors.playing else if (active) hilight else colors.inactive;
+    const bgmix = Attrib{ .bg = hilight.bg, .fg = hilight.fg.interpolate(hilight.bg, 0.9) };
+    const color: Attrib = if (playing) colors.playing else if (active) hilight else bgmix;
     const blinked = if (blink and selected) color.invert() else color;
 
     // Pitches
