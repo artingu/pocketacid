@@ -22,6 +22,7 @@ const DrumEditor = @import("DrumEditor.zig");
 const MasterEditor = @import("MasterEditor.zig");
 const Clipboard = @import("Clipboard.zig");
 const Params = @import("Params.zig");
+const Config = @import("Config.zig");
 
 const w = 30;
 const h = 22;
@@ -62,6 +63,11 @@ pub fn main() !void {
     // std.debug.print("pref: {s}\n", .{paths.pref});
 
     // var savepath: []const u8 = paths.pref;
+
+    var config = Config{};
+
+    try config.load(savedir);
+    defer config.save(savedir) catch {};
 
     var params = Params{};
 

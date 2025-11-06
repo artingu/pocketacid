@@ -1,0 +1,32 @@
+const std = @import("std");
+const Parser = @import("Parser.zig");
+const Tokenizer = @import("Tokenizer.zig");
+
+const configname = "settings.cfg";
+
+testing: bool = false,
+
+pub fn load(self: *@This(), dir: std.fs.Dir) !void {
+    const file = dir.openFile(configname, .{ .mode = .read_only }) catch |err| {
+        if (err == error.FileNotFound) return else return err;
+    };
+
+    var tokenbuf: [64]u8 = undefined;
+    var tokenizer = Tokenizer{
+        .reader = file.reader().any(),
+        .buf = &tokenbuf,
+    };
+
+    const parser = Parser{ .tokenizer = &tokenizer };
+
+    self.* = try parser.expect(@This());
+}
+
+pub fn save(self: *const @This(), dir: std.fs.Dir) !void {
+    const file = try dir.createFile(configname ++ ".tmp", .{});
+    const writer = file.writer().any();
+
+    try Parser.serialize(self.*, writer);
+    try writer.writeAll("\n");
+    try dir.rename(configname ++ ".tmp", configname);
+}
