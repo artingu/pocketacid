@@ -39,12 +39,21 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(arena.allocator());
     defer std.process.argsFree(arena.allocator(), args);
 
+    var nokeyboard = false;
     var savepath_override: ?[]const u8 = null;
     for (args[1..]) |arg| {
+        if (std.mem.eql(u8, arg, "--help")) {
+            help(stderr, args[0]);
+            return;
+        }
+        if (std.mem.eql(u8, arg, "--nokeyboard")) {
+            nokeyboard = true;
+            continue;
+        }
         if (savepath_override == null)
             savepath_override = arg
         else {
-            stderr.print("Usage: {s} [savepath]\n", .{args[0]}) catch {};
+            help(stderr, args[0]);
             std.process.exit(1);
         }
     }
@@ -183,7 +192,7 @@ pub fn main() !void {
         var e: sdl.Event = undefined;
         while (0 != sdl.pollEvent(&e)) {
             if (jh.handle(&e)) continue;
-            if (held.handle(&e)) continue;
+            if (held.handle(&e, nokeyboard)) continue;
 
             switch (e.type) {
                 sdl.QUIT => break :mainloop,
@@ -348,4 +357,11 @@ fn handleParams(ux: f32, uy: f32, dt: f32, mode: JoyMode, params: *PDBass.Params
             params.setCmp(.decay, @min(1, @max(0, prevy - y)), prevy);
         },
     }
+}
+
+fn help(writer: std.io.AnyWriter, arg0: []const u8) void {
+    writer.print("Usage: {s} [OPTIONS] [savedir]\n\n", .{arg0}) catch {};
+    writer.print("Options:\n", .{}) catch {};
+    writer.print("--help\n\tDisplay this information\n", .{}) catch {};
+    writer.print("--nokeyboard\n\tDisable keyboard input\n", .{}) catch {};
 }

@@ -87,9 +87,9 @@ pub const ButtonState = packed struct {
         }
     }
 
-    pub fn handle(self: *@This(), e: *sdl.Event) bool {
+    pub fn handle(self: *@This(), e: *sdl.Event, nokeyboard: bool) bool {
         switch (e.type) {
-            sdl.KEYDOWN => {
+            sdl.KEYDOWN => if (!nokeyboard) {
                 if (e.key.repeat != 0) return false;
                 switch (e.key.keysym.scancode) {
                     sdl.SCANCODE_UP => self.up = true,
@@ -109,7 +109,7 @@ pub const ButtonState = packed struct {
                     else => return false,
                 }
             },
-            sdl.KEYUP => {
+            sdl.KEYUP => if (!nokeyboard) {
                 if (e.key.repeat != 0) return false;
                 switch (e.key.keysym.scancode) {
                     sdl.SCANCODE_UP => self.up = false,
