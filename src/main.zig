@@ -230,8 +230,8 @@ pub fn main() !void {
             if (trig.comboPress("select")) mixer = !mixer;
             if (trig.comboPress("select+start")) break :mainloop;
             if (trig.comboPress("start")) Sys.sound_engine.startstop(arranger.row);
-            if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         }
+        if (Sys.sound_engine.isRunning()) tm.putch(0, 0, colors.playing, 0x10);
         tm.print(1, 0, colors.normal, "{}", .{params.engine.get(.bpm)});
 
         const pi: []const PlaybackInfo = &[_]PlaybackInfo{
