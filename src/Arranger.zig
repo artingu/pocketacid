@@ -1,6 +1,7 @@
 const Arranger = @This();
 
 const Attrib = @import("CharDisplay.zig").Attrib;
+const RGB = @import("rgb.zig").RGB;
 const PlaybackInfo = @import("PlaybackInfo.zig").PlaybackInfo;
 const InputState = @import("ButtonHandler.zig").States;
 const TextMatrix = @import("TextMatrix.zig");
@@ -14,12 +15,26 @@ columns: []const *[256]u8,
 snapshots: *[256]Snapshot,
 params: *Params,
 
+upload_anim: ?UploadAnim = null,
 column: u8 = 0,
 row: u8 = 0,
 blink: f32 = 0,
 qblink: f32 = 0,
 changed: bool = false,
 yank: u8 = 0,
+
+const UploadAnim = struct {
+    row: u8,
+
+    time: f32 = 1,
+
+    fn attrib(self: *const UploadAnim, colors: *const Theme) Attrib {
+        const t3 = self.time * self.time * self.time;
+        const t = @min(1, @max(0, t3));
+        const c = colors.hilight2.fg.interpolate(colors.playing.fg, t);
+        return .{ .bg = colors.hilight2.bg, .fg = c };
+    }
+};
 
 pub inline fn selectedPattern(self: *const Arranger) ?u8 {
     const over_addr = &self.columns[self.column].*[self.row];
@@ -67,7 +82,10 @@ pub fn handle(self: *Arranger, input: InputState) void {
     if (input.hold.any()) self.blink = 0;
 
     if (input.hold.y) {
-        if (input.press.up) self.snapshots[self.row].upload(self.params);
+        if (input.press.up) {
+            self.snapshots[self.row].upload(self.params);
+            self.upload_anim = UploadAnim{ .row = self.row };
+        }
         if (input.press.down and self.snapshots[self.row].active())
             self.params.assumeNoTempo(&self.snapshots[self.row].params);
         if (input.press.b) self.snapshots[self.row].delete();
@@ -216,12 +234,23 @@ pub fn display(
                 else
                     tm.print(x + xoffset * 2, y + yoffset, color, "{x:0>2}", .{val});
             }
-            if (self.snapshots[uidx].active()) tm.puts(x + 8, y + yoffset, colors.hilight2, "\xf0");
+
+            var snapshot_color = colors.hilight2;
+
+            if (self.upload_anim) |a| if (a.row == uidx) {
+                snapshot_color = a.attrib(colors);
+            };
+            if (self.snapshots[uidx].active()) tm.puts(x + 8, y + yoffset, snapshot_color, "\xf0");
         }
     }
 
     self.blink = @mod(self.blink + dt, 1);
     self.qblink = @mod(self.qblink + dt, 1);
+
+    if (self.upload_anim) |*a| {
+        a.time -= dt;
+        if (a.time == 0) self.upload_anim = null;
+    }
 }
 
 inline fn invert(a: Attrib) Attrib {
