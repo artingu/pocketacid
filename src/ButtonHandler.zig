@@ -280,7 +280,7 @@ pub const States = struct {
     }
 };
 
-pub fn handle(self: *@This(), s: ButtonState, dt: f32) States {
+pub fn handle(self: *@This(), s: ButtonState, dt: f32, swapbuttons: bool) States {
     var bs = States{};
 
     inline for (std.meta.fields(@This())) |f| {
@@ -289,6 +289,18 @@ pub fn handle(self: *@This(), s: ButtonState, dt: f32) States {
         @field(bs.release, f.name) = @field(self, f.name).release.trigger(@field(s, f.name), dt);
         @field(bs.hold, f.name) = @field(s, f.name);
     }
+
+    if (swapbuttons) inline for (&.{ "repeat", "press", "release", "hold" }) |fname| {
+        const a = @field(bs, fname).a;
+        const b = @field(bs, fname).b;
+        const x = @field(bs, fname).x;
+        const y = @field(bs, fname).y;
+
+        @field(bs, fname).a = b;
+        @field(bs, fname).b = a;
+        @field(bs, fname).x = y;
+        @field(bs, fname).y = x;
+    };
 
     return bs;
 }

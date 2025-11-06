@@ -9,28 +9,34 @@ const Theme = @import("Theme.zig");
 
 pub const Entry = union(enum) {
     u8: U8Entry,
+    bool: BoolEntry,
     Kit: EnumEntry(Kit.Id),
     Theme: EnumEntry(Theme.Id),
     spacer,
 
     fn up(self: Entry) void {
         switch (self) {
-            inline else => |e| if (@TypeOf(e) != void) e.up(),
+            inline else => |e| if (@TypeOf(e) != void and @hasDecl(@TypeOf(e), "up")) e.up(),
         }
     }
     fn down(self: Entry) void {
         switch (self) {
-            inline else => |e| if (@TypeOf(e) != void) e.down(),
+            inline else => |e| if (@TypeOf(e) != void and @hasDecl(@TypeOf(e), "down")) e.down(),
         }
     }
     fn left(self: Entry) void {
         switch (self) {
-            inline else => |e| if (@TypeOf(e) != void) e.left(),
+            inline else => |e| if (@TypeOf(e) != void and @hasDecl(@TypeOf(e), "left")) e.left(),
         }
     }
     fn right(self: Entry) void {
         switch (self) {
-            inline else => |e| if (@TypeOf(e) != void) e.right(),
+            inline else => |e| if (@TypeOf(e) != void and @hasDecl(@TypeOf(e), "right")) e.right(),
+        }
+    }
+    fn press(self: Entry) void {
+        switch (self) {
+            inline else => |e| if (@TypeOf(e) != void and @hasDecl(@TypeOf(e), "press")) e.press(),
         }
     }
 
@@ -38,6 +44,23 @@ pub const Entry = union(enum) {
         switch (self) {
             inline else => |e| if (@TypeOf(e) != void) e.display(tm, x, y, color),
         }
+    }
+};
+
+pub const BoolEntry = struct {
+    label: []const u8,
+    ptr: *bool,
+    t: []const u8 = "true",
+    f: []const u8 = "false",
+
+    fn press(self: BoolEntry) void {
+        const value = @atomicLoad(bool, self.ptr, .seq_cst);
+        @atomicStore(bool, self.ptr, !value, .seq_cst);
+    }
+
+    fn display(self: BoolEntry, tm: *TextMatrix, x: usize, y: usize, color: Attrib) void {
+        const value = @atomicLoad(bool, self.ptr, .seq_cst);
+        tm.print(x, y, color, "{s} {s}", .{ self.label, if (value) self.t else self.f });
     }
 };
 
@@ -107,7 +130,8 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
     if (input.hold.any()) self.blink = 0;
 
     const entry = self.menu[self.idx];
-    if (input.hold.a) {
+    if (input.press.a or input.press.b) entry.press();
+    if (input.hold.a or input.hold.b) {
         if (input.repeat.up) entry.up();
         if (input.repeat.down) entry.down();
         if (input.repeat.left) entry.left();

@@ -104,7 +104,8 @@ pub fn main() !void {
         .{ .u8 = .{ .label = "delay duck:    ", .ptr = &params.delay.duck } },
         .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
         .spacer,
-        .{ .Theme = .{ .label = "theme:", .ptr = &config.theme } },
+        .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
+        .{ .bool = .{ .label = "swap buttons:", .ptr = &config.swapbuttons, .t = "yes", .f = "no" } },
     } };
 
     var arranger = Arranger{
@@ -198,7 +199,7 @@ pub fn main() !void {
 
         tm.clear(colors.normal);
 
-        const trig = bh.handle(held, dt);
+        const trig = bh.handle(held, dt, config.swapbuttons);
         const j_mode: JoyMode = if (trig.hold.l2)
             .res_feedback
         else if (trig.hold.r2)
