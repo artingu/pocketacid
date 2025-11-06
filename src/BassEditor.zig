@@ -266,11 +266,14 @@ pub fn display(
     dt: f32,
     active: bool,
     pi: PlaybackInfo,
-    colors: *const Theme,
+    c: *const Theme,
 ) void {
     const pattern = self.selectedPattern();
     const pattern_len = pattern.length();
     const base = pattern.getBase();
+
+    const faded = c.faded(0.5);
+    const colors = if (active) c else &faded;
 
     const on = active and @mod(self.blink * 4, 1) < 0.5;
 

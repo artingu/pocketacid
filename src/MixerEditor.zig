@@ -44,21 +44,23 @@ pub fn display(
     y: usize,
     dt: f32,
     active: bool,
-    colors: *const Theme,
+    c: *const Theme,
 ) void {
-    const on = @mod(self.blink * 4, 1) < 0.5;
+    const on = @mod(self.blink * 4, 1) < 0.5 and active;
+
+    const faded = c.faded(0.5);
+    const colors = if (active) c else &faded;
 
     const alter = [_]Attrib{
         colors.hilight,
         colors.normal,
     };
 
-    const label_color = if (active) colors.normal else colors.hilight2;
-    tm.puts(x, y + 1, label_color, "\x0d");
-    tm.puts(x, y + 3, label_color, "\x12");
-    tm.puts(x, y + 4, label_color, "\x1d");
-    tm.puts(x, y + 5, label_color, "\xb0");
-    tm.puts(x, y + 6, label_color, "\x11");
+    tm.puts(x, y + 1, colors.normal, "\x0d");
+    tm.puts(x, y + 3, colors.normal, "\x12");
+    tm.puts(x, y + 4, colors.normal, "\x1d");
+    tm.puts(x, y + 5, colors.normal, "\xb0");
+    tm.puts(x, y + 6, colors.normal, "\x11");
 
     for (self.channels, 0..) |*channel, i| {
         const level = @atomicLoad(u8, &channel.level, .seq_cst);
@@ -74,13 +76,13 @@ pub fn display(
         const hilight_dck = on and sc == i and sr == .dck;
 
         const xo = x + 2 + i * 3;
-        tm.puts(xo, y + 1, if (active) alter[i % 2] else colors.hilight2, self.mixer.channels[i].label);
-        tm.puts(xo, y + 2, if (active) alter[i % 2] else colors.hilight2, "\xc4\xc4");
+        tm.puts(xo, y + 1, alter[i % 2], self.mixer.channels[i].label);
+        tm.puts(xo, y + 2, alter[i % 2], "\xc4\xc4");
 
-        tm.print(xo, y + 3, if (active) invertIf(alter[i % 2], hilight_level) else colors.hilight2, "{x:0>2}", .{level});
-        tm.print(xo, y + 4, if (active) invertIf(alter[i % 2], hilight_pan) else colors.hilight2, "{x:0>2}", .{pan});
-        tm.print(xo, y + 5, if (active) invertIf(alter[i % 2], hilight_snd) else colors.hilight2, "{x:0>2}", .{send});
-        tm.print(xo, y + 6, if (active) invertIf(alter[i % 2], hilight_dck) else colors.hilight2, "{x:0>2}", .{duck});
+        tm.print(xo, y + 3, invertIf(alter[i % 2], hilight_level), "{x:0>2}", .{level});
+        tm.print(xo, y + 4, invertIf(alter[i % 2], hilight_pan), "{x:0>2}", .{pan});
+        tm.print(xo, y + 5, invertIf(alter[i % 2], hilight_snd), "{x:0>2}", .{send});
+        tm.print(xo, y + 6, invertIf(alter[i % 2], hilight_dck), "{x:0>2}", .{duck});
     }
 
     self.blink = @mod(self.blink + dt, 1);

@@ -192,10 +192,13 @@ pub fn display(
     active: bool,
     playback_info: []const PlaybackInfo,
     queued_info: []const ?u8,
-    colors: *const Theme,
+    c: *const Theme,
 ) void {
     const half_height: isize = height / 2;
     const on = !active or @mod(self.blink * 4, 1) < 0.5;
+
+    const faded = c.faded(0.5);
+    const colors = if (active) c else &faded;
 
     for (0..height) |yoffset| {
         const idx: isize = @as(isize, @intCast(yoffset)) + self.row - half_height;

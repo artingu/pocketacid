@@ -44,11 +44,14 @@ pub fn display(
     active: bool,
     pi: PlaybackInfo,
     mutes: DrumMachine.Mutes,
-    colors: *const Theme,
+    c: *const Theme,
 ) void {
     const current_pattern = self.selectedPattern();
     const current_len = current_pattern.length();
     const on = active and @mod(self.blink * 4, 1) < 0.5;
+
+    const faded = c.faded(0.5);
+    const colors = if (active) c else &faded;
 
     tm.print(xo + 3, yo, colors.hilight2, "ptn:{x:0>2}", .{self.pattern_idx});
 

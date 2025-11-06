@@ -8,6 +8,15 @@ hilight: Attrib,
 hilight2: Attrib,
 playing: Attrib,
 
+pub fn faded(self: *const @This(), amt: f32) @This() {
+    return .{
+        .normal = .{ .bg = self.normal.bg, .fg = self.normal.fg.interpolate(self.normal.bg, amt) },
+        .hilight = .{ .bg = self.hilight.bg, .fg = self.hilight.fg.interpolate(self.hilight.bg, amt) },
+        .hilight2 = .{ .bg = self.hilight2.bg, .fg = self.hilight2.fg.interpolate(self.hilight2.bg, amt) },
+        .playing = .{ .bg = self.playing.bg, .fg = self.playing.fg.interpolate(self.playing.bg, amt) },
+    };
+}
+
 pub const Id = enum {
     term,
     panel,

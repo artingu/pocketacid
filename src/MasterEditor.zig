@@ -109,13 +109,14 @@ pub fn display(
     y: usize,
     dt: f32,
     active: bool,
-    colors: *const Theme,
+    c: *const Theme,
 ) void {
-    const on = @mod(self.blink * 4, 1) < 0.5;
+    const faded = c.faded(0.5);
+    const colors = if (active) c else &faded;
+
+    const on = @mod(self.blink * 4, 1) < 0.5 and active;
     for (self.menu, 0..) |entry, i| {
-        const color = if (!active)
-            colors.hilight2
-        else if (i == self.idx)
+        const color = if (i == self.idx)
             invertIf(colors.hilight, on)
         else
             colors.normal;
