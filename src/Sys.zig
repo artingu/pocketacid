@@ -10,6 +10,9 @@ const Self = @This();
 
 const midi = @import("midi.zig");
 
+const appname = "aseq";
+const orgname = "Text Garden";
+
 var midibuf_buf: [256]midi.Event = undefined;
 var midibuf = MidiBuf{ .buf = &midibuf_buf };
 pub var sound_engine = SoundEngine{ .midibuf = &midibuf };
@@ -33,13 +36,23 @@ fn audiocb(data: ?*anyopaque, stream: [*c]u8, byte_len: c_int) callconv(.C) void
     }
 }
 
+pub const Paths = struct {
+    base: []u8,
+    pref: []u8,
+
+    pub fn deinit(self: *const Paths) void {
+        _ = sdl.free(@ptrCast(self.base));
+        _ = sdl.free(@ptrCast(self.pref));
+    }
+};
+
 font: *sdl.Texture,
 out: *sdl.Texture,
 w: *sdl.Window,
 r: *sdl.Renderer,
-audio_device: sdl.AudioDeviceID,
+audio_device: ?sdl.AudioDeviceID = null,
 
-pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
+pub fn init(w_width: c_int, w_height: c_int) !Self {
     if (sdl.init(sdl.INIT_VIDEO | sdl.INIT_EVENTS | sdl.INIT_GAMECONTROLLER | sdl.INIT_AUDIO) != 0) {
         return error.FailedInitSDL;
     }
@@ -48,7 +61,7 @@ pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
     if (sdl.FALSE == sdl.setHint(sdl.HINT_RENDER_SCALE_QUALITY, "nearest")) return error.FailedSetScaleQuality;
 
     const w = sdl.createWindow(
-        title,
+        appname,
         sdl.WINDOWPOS_UNDEFINED,
         sdl.WINDOWPOS_UNDEFINED,
         w_width * 3,
@@ -81,6 +94,17 @@ pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
     const font = try texture.load(r, fontdata);
     errdefer sdl.destroyTexture(font);
 
+    _ = sdl.showCursor(sdl.DISABLE);
+
+    return .{
+        .w = w,
+        .r = r,
+        .font = font,
+        .out = out,
+    };
+}
+
+pub fn startAudio(self: *Self) !void {
     const want = sdl.AudioSpec{
         .freq = 48000,
         .format = sdl.AUDIO_F32,
@@ -103,16 +127,20 @@ pub fn init(title: [*:0]const u8, w_width: c_int, w_height: c_int) !Self {
     if (device <= 0) return error.FailedOpenAudioDevice;
     errdefer sdl.closeAudioDevice(device);
 
-    sdl.pauseAudioDevice(device, 0);
+    self.audio_device = device;
 
-    _ = sdl.showCursor(sdl.DISABLE);
+    sdl.pauseAudioDevice(device, 0);
+}
+
+pub fn paths(_: *const Self) !Paths {
+    const prefpath = sdl.getPrefPath(orgname, appname) orelse return error.FailedGetPrefPath;
+    errdefer sdl.free(prefpath);
+    const basepath = sdl.getBasePath() orelse return error.FailedGetBasePath;
+    errdefer sdl.free(basepath);
 
     return .{
-        .w = w,
-        .r = r,
-        .font = font,
-        .out = out,
-        .audio_device = device,
+        .pref = std.mem.span(prefpath),
+        .base = std.mem.span(basepath),
     };
 }
 
@@ -130,7 +158,7 @@ pub fn postRender(self: *Self) void {
 }
 
 pub fn cleanup(self: *Self) void {
-    sdl.closeAudioDevice(self.audio_device);
+    if (self.audio_device) |ad| sdl.closeAudioDevice(ad);
     sdl.destroyTexture(self.font);
     sdl.destroyTexture(self.out);
 

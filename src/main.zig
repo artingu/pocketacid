@@ -28,6 +28,41 @@ const h = 22;
 const savename = "state.sav";
 
 pub fn main() !void {
+    const stderr = std.io.getStdErr().writer().any();
+
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer {
+        _ = arena.reset(.free_all);
+        arena.deinit();
+    }
+
+    const args = try std.process.argsAlloc(arena.allocator());
+    defer std.process.argsFree(arena.allocator(), args);
+
+    var savepath_override: ?[]const u8 = null;
+    for (args[1..]) |arg| {
+        if (savepath_override == null)
+            savepath_override = arg
+        else {
+            stderr.print("Usage: {s} [savepath]\n", .{args[0]}) catch {};
+            std.process.exit(1);
+        }
+    }
+
+    var sys = try Sys.init(w * 8, h * 8);
+    defer sys.cleanup();
+
+    const paths = try sys.paths();
+    defer paths.deinit();
+
+    var savedir = try std.fs.cwd().openDir(savepath_override orelse paths.pref, .{});
+    defer savedir.close();
+
+    // std.debug.print("base: {s}\n", .{paths.base});
+    // std.debug.print("pref: {s}\n", .{paths.pref});
+
+    // var savepath: []const u8 = paths.pref;
+
     var params = Params{};
 
     var cells: [w * h]CharDisplay.Cell = undefined;
@@ -77,8 +112,7 @@ pub fn main() !void {
     };
 
     loadblock: {
-        const cwd = std.fs.cwd();
-        const file = cwd.openFile(savename, .{ .mode = .read_only }) catch |err| {
+        const file = savedir.openFile(savename, .{ .mode = .read_only }) catch |err| {
             if (err == error.FileNotFound) break :loadblock else return err;
         };
         var br = std.io.bufferedReader(file.reader());
@@ -100,8 +134,7 @@ pub fn main() !void {
 
     defer {
         saveblock: {
-            const cwd = std.fs.cwd();
-            const f = cwd.createFile(savename ++ ".tmp", .{}) catch break :saveblock;
+            const f = savedir.createFile(savename ++ ".tmp", .{}) catch break :saveblock;
             const writer = f.writer().any();
 
             save.save(
@@ -116,12 +149,11 @@ pub fn main() !void {
                 &mixer_editor,
                 &song.snapshots,
             ) catch break :saveblock;
-            cwd.rename(savename ++ ".tmp", savename) catch {};
+            savedir.rename(savename ++ ".tmp", savename) catch {};
         }
     }
 
-    var sys = try Sys.init("aseq", w * 8, h * 8);
-    defer sys.cleanup();
+    try sys.startAudio();
 
     const cd = CharDisplay{
         .w = w,
