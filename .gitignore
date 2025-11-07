@@ -2,3 +2,5 @@ zig-out
 .zig-cache
 state.sav
 settings.cfg
+release
+prereqs
