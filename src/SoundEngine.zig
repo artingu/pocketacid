@@ -116,29 +116,23 @@ pub fn resetDelay(self: *@This()) void {
 
 pub fn everyBuffer(self: *@This()) void {
     const cmd = @atomicRmw(Cmd, &self.cmd, .Xchg, .{}, .seq_cst);
-    cmdswitch: switch (cmd.t) {
+    const running = @atomicLoad(bool, &self.running, .seq_cst);
+
+    switch (cmd.t) {
         .startstop => {
-            const running = @atomicLoad(bool, &self.running, .seq_cst);
-            if (running) {
-                @atomicStore(bool, &self.running, false, .seq_cst);
-                self.bs1.stop();
-                self.bs2.stop();
-                self.ds.stop();
-                self.snapshot_row = null;
-            } else {
-                @atomicStore(bool, &self.running, true, .seq_cst);
-                self.phase = 1;
-                self.bs1.start(cmd.row);
-                self.bs2.start(cmd.row);
-                self.ds.start(cmd.row);
-                self.snapshot_row = null;
-            }
+            const snap = &song.snapshots[cmd.row];
+            if (!running and snap.active())
+                self.params.set(.bpm, snap.params.engine.get(.bpm));
+            self.start(cmd.row, running);
         },
         .enqueue => {
-            if (!@atomicLoad(bool, &self.running, .seq_cst)) break :cmdswitch;
-            self.bs1.enqueue(cmd.row);
-            self.bs2.enqueue(cmd.row);
-            self.ds.enqueue(cmd.row);
+            if (!running)
+                self.start(cmd.row, running)
+            else {
+                self.bs1.enqueue(cmd.row);
+                self.bs2.enqueue(cmd.row);
+                self.ds.enqueue(cmd.row);
+            }
         },
         .none => {},
     }
@@ -146,6 +140,23 @@ pub fn everyBuffer(self: *@This()) void {
     for (self.midibuf.emit()) |event| {
         self.pdbass1.handleMidiEvent(event);
         self.pdbass2.handleMidiEvent(event);
+    }
+}
+
+fn start(self: *@This(), row: u8, running: bool) void {
+    if (running) {
+        @atomicStore(bool, &self.running, false, .seq_cst);
+        self.bs1.stop();
+        self.bs2.stop();
+        self.ds.stop();
+        self.snapshot_row = null;
+    } else {
+        @atomicStore(bool, &self.running, true, .seq_cst);
+        self.phase = 1;
+        self.bs1.start(row);
+        self.bs2.start(row);
+        self.ds.start(row);
+        self.snapshot_row = null;
     }
 }
 
