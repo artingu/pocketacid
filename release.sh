@@ -36,6 +36,7 @@ cp zig-out/bin/$NAME.exe release/$NAME-$VERSION/
 cp prereqs/SDL2/lib/x64/SDL2.dll release/$NAME-$VERSION/
 cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/
 cp README.md release/$NAME-$VERSION/README.txt
+cp COPYING release/$NAME-$VERSION/COPYING.txt
 zip -r release/$NAME-${VERSION}.win64.zip release/$NAME-$VERSION
 rm -rf release/$NAME-$VERSION
 
@@ -54,6 +55,7 @@ rm -rf release/$NAME-$VERSION
 	cp README.md release/portmaster/$NAME/
 	mkdir release/portmaster/$NAME/licenses/
 	cp README-SDL.txt release/portmaster/$NAME/licenses/
+	cp COPYING release/portmaster/$NAME/licenses/corrode.txt
 	cp README.md release/portmaster/$NAME/
 	(cd release/portmaster && zip -r ../$NAME-$VERSION.portmaster.zip .)
 	rm -rf release/portmaster
