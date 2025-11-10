@@ -1,13 +1,13 @@
 {
   "version": 4,
-  "name": "cz303.zip",
+  "name": "corrode.zip",
   "items": [
-    "cz303.sh",
-    "cz303"
+    "corrode.sh",
+    "corrode"
   ],
   "items_opt": [],
   "attr": {
-    "title": "cz303",
+    "title": "corrode",
     "porter": [
       "Text Garden"
     ],

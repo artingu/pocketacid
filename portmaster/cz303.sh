@@ -18,7 +18,7 @@ source $controlfolder/control.txt
 
 get_controls
 
-GAMEDIR=/$directory/ports/cz303/
+GAMEDIR=/$directory/ports/corrode/
 CONFDIR="$GAMEDIR/conf/"
 
 mkdir -p "$GAMEDIR/conf"
@@ -30,7 +30,7 @@ cd $GAMEDIR
 export XDG_DATA_HOME="$CONFDIR"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$GPTOKEYB "$cz303.${DEVICE_ARCH}" &
-pm_platform_helper "$GAMEDIR/cz303.${DEVICE_ARCH}"
-./cz303.${DEVICE_ARCH} --nokeyboard ./conf
+$GPTOKEYB "$corrode.${DEVICE_ARCH}" &
+pm_platform_helper "$GAMEDIR/corrode.${DEVICE_ARCH}"
+./corrode.${DEVICE_ARCH} --nokeyboard ./conf
 pm_finish

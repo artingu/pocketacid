@@ -2,7 +2,7 @@
 
 set -e
 
-NAME=cz303
+NAME=corrode
 VERSION="$(git describe --always)"
 ZIG_VERSION=0.14.1
 SDL2_WINDOWS_VERSION=2.32.6

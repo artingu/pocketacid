@@ -1,6 +1,6 @@
-# cz303
+# corrode
 
-cz303 is a self-contained music studio designed for use with game controllers
+corrode is a self-contained music studio designed for use with game controllers
 and cheap, handheld Linux-based game consoles like the [R36S](https://handhelds.wiki/R36S_Handheld_Wiki).
 It's designed for live use, with quick access to synthesizer parameters via
 joysticks, muting using button combinations and pattern queuing.
@@ -53,7 +53,7 @@ used.
 
 ## Controls
 
-cz303 assumes a controller layout similar to that of a typical
+corrode assumes a controller layout similar to that of a typical
 Xbox/Playstation controller, with two sticks and four shoulder
 buttons. The buttons are named as follows:
 
@@ -116,7 +116,7 @@ Others are specific to the different sections of the programs described below
 
 ## Sections
 
-cz303 is divided into several sections which you can normally move between
+corrode is divided into several sections which you can normally move between
 using the select and R1 buttons:
 
 * **Arranger**: used for arranging patterns into loops or songs
@@ -389,7 +389,7 @@ Controls:
 
 ## Command line arguments
 
-    Usage: cz303 [OPTIONS] [savedir]
+    Usage: corrode [OPTIONS] [savedir]
 
     Options:
     --help
