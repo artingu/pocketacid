@@ -31,7 +31,7 @@ fi
 popd
 
 mkdir -p release/$NAME-$VERSION
-zig build -Dcpu=core2 -Doptimize=ReleaseFast -Dtarget=x86_64-windows --verbose
+prereqs/zig/zig build -Dcpu=core2 -Doptimize=ReleaseFast -Dtarget=x86_64-windows --verbose
 cp zig-out/bin/$NAME.exe release/$NAME-$VERSION/
 cp prereqs/SDL2/lib/x64/SDL2.dll release/$NAME-$VERSION/
 cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/
@@ -43,7 +43,7 @@ rm -rf release/$NAME-$VERSION
 (
 	export PKG_CONFIG_PATH=$PWD/r36xx/usr/lib/pkgconfig
 	export PKG_CONFIG_SYSROOT_DIR=$PWD/r36xx/
-	zig build \
+	prereqs/zig/zig build \
 		-Doptimize=ReleaseFast \
 		-Dtarget=aarch64-linux-gnu \
 		-Dcpu=cortex_a35 \
