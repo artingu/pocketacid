@@ -35,6 +35,7 @@ zig build -Dcpu=core2 -Doptimize=ReleaseFast -Dtarget=x86_64-windows --verbose
 cp zig-out/bin/$NAME.exe release/$NAME-$VERSION/
 cp prereqs/SDL2/lib/x64/SDL2.dll release/$NAME-$VERSION/
 cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/
+cp README.md release/$NAME-$VERSION/README.txt
 zip -r release/$NAME-${VERSION}.win64.zip release/$NAME-$VERSION
 rm -rf release/$NAME-$VERSION
 
