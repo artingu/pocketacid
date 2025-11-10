@@ -27,7 +27,7 @@ const Self = @This();
 
 const midi = @import("midi.zig");
 
-const appname = "aseq";
+const appname = "corrode";
 const orgname = "Text Garden";
 
 var midibuf_buf: [256]midi.Event = undefined;
