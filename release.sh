@@ -20,8 +20,8 @@ if [ ! -d SDL2 ]; then
 	mv SDL2-$SDL2_WINDOWS_VERSION SDL2
 fi
 
-# Get Zig
 if [ ! -d zig ]; then
+	# Get Zig
 	wget https://ziglang.org/download/$ZIG_VERSION/zig-x86_64-linux-$ZIG_VERSION.tar.xz
 	tar xf zig-x86_64-linux-$ZIG_VERSION.tar.xz
 	rm zig-x86_64-linux-$ZIG_VERSION.tar.xz
@@ -47,8 +47,13 @@ rm -rf release/$NAME-$VERSION
 		-Dcpu=cortex_a35 \
 		--search-prefix $PWD/r36xx/usr/
 
-	mkdir -p release/$NAME-$VERSION
-	cp zig-out/bin/$NAME release/$NAME-$VERSION/$NAME.aarch64
-	tar czf release/$NAME-$VERSION.aarch64.tar.gz -C release $NAME-$VERSION
-	rm -rf release/$NAME-$VERSION
+	mkdir -p release/portmaster
+	cp -rf portmaster/* release/portmaster
+	cp zig-out/bin/$NAME release/portmaster/$NAME/$NAME.aarch64
+	cp README.md release/portmaster/$NAME/
+	mkdir release/portmaster/$NAME/licenses/
+	cp README-SDL.txt release/portmaster/$NAME/licenses/
+	cp README.md release/portmaster/$NAME/
+	(cd release/portmaster && zip -r ../$NAME-$VERSION.portmaster.zip .)
+	rm -rf release/portmaster
 )

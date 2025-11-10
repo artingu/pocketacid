@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<gameList>
+  <game>
+    <path>./cz303.sh</path>
+    <name>cz303</name>
+	<desc>Self-contained music studio.</desc>
+    <releasedate>20230819T000000</releasedate>
+    <developer>Text Garden</developer>
+    <publisher>Text Garden</publisher>
+    <genre>other</genre>
+    <image>./cz303/cover.png</image>
+  </game>
+</gameList>
