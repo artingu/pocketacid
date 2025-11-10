@@ -78,16 +78,14 @@ pub fn main() !void {
     var sys = try Sys.init(w * 8, h * 8);
     defer sys.cleanup();
 
-    const paths = try sys.paths();
-    defer paths.deinit();
-
-    var savedir = try std.fs.cwd().openDir(savepath_override orelse paths.pref, .{});
+    var savedir = if (savepath_override) |sp|
+        try std.fs.cwd().openDir(sp, .{})
+    else pathsblk: {
+        const paths = try sys.paths();
+        defer paths.deinit();
+        break :pathsblk try std.fs.cwd().openDir(paths.pref, .{});
+    };
     defer savedir.close();
-
-    // std.debug.print("base: {s}\n", .{paths.base});
-    // std.debug.print("pref: {s}\n", .{paths.pref});
-
-    // var savepath: []const u8 = paths.pref;
 
     var config = Config{};
 
