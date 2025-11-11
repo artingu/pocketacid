@@ -126,6 +126,7 @@ pub fn main() !void {
         .{ .u8 = .{ .label = "delay time:    ", .ptr = &params.delay.time } },
         .{ .u8 = .{ .label = "delay feedback:", .ptr = &params.delay.feedback } },
         .{ .u8 = .{ .label = "delay duck:    ", .ptr = &params.delay.duck } },
+        .{ .u8 = .{ .label = "swing:         ", .ptr = &params.engine.swing } },
         .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
         .spacer,
         .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
@@ -269,10 +270,11 @@ pub fn main() !void {
             Sys.sound_engine.ds.queued(),
         };
 
+        // TODO clean this shit up
         if (mixer) {
             if (trig.press.r) mixer_channels = !mixer_channels;
             mixer_editor.handle(trig, mixer_channels);
-            master_editor.handle(trig, !mixer_channels);
+            if (!globalkey) master_editor.handle(trig, !mixer_channels);
             mixer_editor.display(&tm, 1, 14, dt, mixer_channels, colors);
             master_editor.display(&tm, 1, 1, dt, !mixer_channels, colors);
         } else {

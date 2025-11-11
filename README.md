@@ -352,6 +352,7 @@ Controls:
     delay time:     40
     delay feedback: 80
     delay duck:     80
+    swing:          00
     drum kit:       R7
 
     theme: forest
@@ -367,6 +368,8 @@ These musical settings are included in snapshots:
   the current tempo. For example, 30 is three steps.
 * delay feedback: the delay feedback amount
 * delay duck: bass drum ducking amount for the delay return
+* swing: controls the time ratio between odd and even steps, allowing for
+  16th note swing
 * drum kit: the built-in drum kit sample set to use
 
 These settings concern the whole program and are not included in snapshots:

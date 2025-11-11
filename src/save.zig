@@ -134,7 +134,7 @@ fn skipLoad(r: std.io.AnyReader, len: usize) !void {
 fn readSnapshots(r: std.io.AnyReader, snapshots: *[256]Snapshot, version: u16, len: u16) !void {
     switch (version) {
         1 => {
-            if (len != 72 * 256) return error.SnapshotsBadLength;
+            if (len != 73 * 256) return error.SnapshotsBadLength;
 
             for (0..256) |i| {
                 const enabled = 0 != (try r.readInt(u8, .little));
@@ -149,7 +149,7 @@ fn readSnapshots(r: std.io.AnyReader, snapshots: *[256]Snapshot, version: u16, l
 fn readParams(r: std.io.AnyReader, params: *Params, version: u16, len: u16) !void {
     switch (version) {
         1 => {
-            if (len != 71) return error.BadParamLen;
+            if (len != 72) return error.BadParamLen;
             try bareReadParams(r, params);
         },
         else => return error.BadParamVersion,
@@ -157,16 +157,17 @@ fn readParams(r: std.io.AnyReader, params: *Params, version: u16, len: u16) !voi
 }
 
 fn bareReadParams(r: std.io.AnyReader, params: *Params) !void {
-    // Engine (3)
+    // Engine (4)
     params.engine.set(.bpm, try r.readInt(i16, .little));
     params.engine.set(.drive, try r.readInt(u8, .little));
     params.engine.set(.mutes, @bitCast(try r.readInt(u8, .little)));
+    params.engine.set(.swing, try r.readInt(u8, .little));
 
-    // Bass synths (27)
+    // Bass synths (28)
     try readBassPatch(r, &params.bass1);
     try readBassPatch(r, &params.bass2);
 
-    // Drums (32)
+    // Drums (33)
     params.drums.set(.non_accent_level, try r.readInt(u8, .little));
     var kitnamebuf: [2]u8 = undefined;
     try r.readNoEof(&kitnamebuf);
@@ -174,12 +175,12 @@ fn bareReadParams(r: std.io.AnyReader, params: *Params) !void {
     params.drums.set(.kit, kit);
     params.drums.set(.duck_time, try r.readInt(u8, .little));
 
-    // Delay (35)
+    // Delay (36)
     params.delay.set(.time, try r.readInt(u8, .little));
     params.delay.set(.feedback, try r.readInt(u8, .little));
     params.delay.set(.duck, try r.readInt(u8, .little));
 
-    // Mixer (71)
+    // Mixer (72)
     for (0..Mixer.nchannels) |i| {
         params.mixer[i].set(.level, try r.readInt(u8, .little));
         params.mixer[i].set(.pan, try r.readInt(u8, .little));
@@ -412,6 +413,7 @@ fn writeParams(w: std.io.AnyWriter, params: *const Params) !void {
     try w.writeInt(i16, params.engine.get(.bpm), .little);
     try w.writeInt(u8, params.engine.get(.drive), .little);
     try w.writeInt(u8, @bitCast(params.engine.get(.mutes)), .little);
+    try w.writeInt(u8, params.engine.get(.swing), .little);
 
     // Bass synths
     try writeBassParams(w, &params.bass1);

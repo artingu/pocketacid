@@ -38,6 +38,7 @@ pub const Params = struct {
     bpm: i16 = 120,
     drive: u8 = 0,
     mutes: DrumMachine.Mutes = .{},
+    swing: u8 = 0,
 
     pub usingnamespace Accessor(@This());
 
@@ -53,8 +54,10 @@ params: *Params = undefined,
 global_params: *GlobalParams = undefined,
 
 phase: f32 = 0,
+prevphase: f32 = 0,
 startrow: u8 = 0,
 snapshot_row: ?u8 = null,
+swing: u8 = 0x00,
 
 bs1: BassSeq = .{
     .patterns = &song.bass_patterns,
@@ -169,7 +172,8 @@ fn start(self: *@This(), row: u8, running: bool) void {
         self.snapshot_row = null;
     } else {
         @atomicStore(bool, &self.running, true, .seq_cst);
-        self.phase = 1;
+        self.phase = 0;
+        self.prevphase = 0.999;
         self.bs1.start(row);
         self.bs2.start(row);
         self.ds.start(row);
@@ -177,13 +181,17 @@ fn start(self: *@This(), row: u8, running: bool) void {
     }
 }
 
-pub fn next(self: *@This(), srate: f32) Mixer.Frame {
-    const bpm: f32 = @floatFromInt(self.params.get(.bpm));
+var sample: u64 = 0;
 
-    self.phase += 24 * bpm / (60 * srate);
-    while (self.phase >= 1) {
-        self.bs1.tick(self.params.mutes.get(.b1));
-        self.bs2.tick(self.params.mutes.get(.b2));
+pub fn next(self: *@This(), srate: f32) Mixer.Frame {
+    defer sample += 1;
+
+    const bpm: f32 = @floatFromInt(self.params.get(.bpm));
+    const gated = @mod(shuffleSkew(self.phase, self.swing) * 12, 1) < 0.5;
+    const prevgated = @mod(shuffleSkew(self.prevphase, self.swing) * 12, 1) < 0.5;
+    const tick = gated and !prevgated;
+
+    if (tick) {
         if (self.ds.tick()) |row| {
             if (song.snapshots[row].active() and row != self.snapshot_row) {
                 self.snapshot_row = row;
@@ -193,8 +201,19 @@ pub fn next(self: *@This(), srate: f32) Mixer.Frame {
                 self.pdbass2.short();
             }
         }
-        self.phase -= 1;
+        self.bs1.tick(self.params.mutes.get(.b1));
+        self.bs2.tick(self.params.mutes.get(.b2));
     }
+
+    if (self.prevphase >= self.phase) {
+        // Reload swing value
+        const swing = self.params.get(.swing);
+        self.swing = swing;
+    }
+
+    self.prevphase = self.phase;
+    self.phase = @mod(self.phase + 2 * bpm / (60 * srate), 1);
+
     for (self.midibuf.emit()) |event| {
         self.pdbass1.handleMidiEvent(event);
         self.pdbass2.handleMidiEvent(event);
@@ -236,4 +255,10 @@ pub fn enqueue(self: *@This(), row: u8) void {
 
 pub fn isRunning(self: *@This()) bool {
     return @atomicLoad(bool, &self.running, .seq_cst);
+}
+
+fn shuffleSkew(x: f32, v: u8) f32 {
+    const k = (@as(f32, @floatFromInt(v)) / 255) * 0.25 + 0.5;
+    const div = 4 * k * (1 - k);
+    return (x + k * (1 - 2 * k) + (2 * k - 1) * @abs(x - k)) / div;
 }
