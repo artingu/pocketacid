@@ -278,7 +278,11 @@ pub fn main() !void {
             mixer_editor.display(&tm, 1, 14, dt, mixer_channels, colors);
             master_editor.display(&tm, 1, 1, dt, !mixer_channels, colors);
         } else {
-            if (!globalkey and trig.comboPress("r")) arrange = !arrange;
+            if (!globalkey and trig.comboPress("r")) {
+                if (arrange) {
+                    if (!arranger.selEmpty()) arrange = false;
+                } else arrange = true;
+            }
             if (arrange) {
                 if (!globalkey and trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
                 if (!globalkey) arranger.handle(trig);

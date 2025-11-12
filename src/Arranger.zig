@@ -66,6 +66,11 @@ pub fn rowEmpty(self: *const Arranger, row: u8) bool {
     return true;
 }
 
+pub fn selEmpty(self: *const Arranger) bool {
+    const sel = @atomicLoad(u8, &self.columns[self.column][self.row], .seq_cst);
+    return sel == 0xff;
+}
+
 pub fn nextStart(self: *Arranger) void {
     var prev_empty = false;
     for (0..256) |i| {
