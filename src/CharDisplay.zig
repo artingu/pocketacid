@@ -62,8 +62,8 @@ pub const Cell = packed struct {
     }
 };
 
-pub fn flush(self: *@This()) void {
-    const force_flush = self.lastfonttype != self.fonttype.*;
+pub fn flush(self: *@This(), force: bool) void {
+    const force_flush = force or (self.lastfonttype != self.fonttype.*);
     for (0..self.h) |y| for (0..self.w) |x| {
         const idx = x + y * self.w;
         if (!self.cells[idx].eq(self.last_rendered[idx]) or force_flush)

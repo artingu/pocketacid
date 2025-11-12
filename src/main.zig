@@ -220,6 +220,14 @@ pub fn main() !void {
 
             switch (e.type) {
                 sdl.QUIT => break :mainloop,
+                sdl.WINDOWEVENT => switch (e.window.event) {
+                    sdl.WINDOWEVENT_SIZE_CHANGED => {
+                        sys.preRender();
+                        cd.flush(true);
+                        sys.postRender();
+                    },
+                    else => {},
+                },
                 sdl.CONTROLLERDEVICEADDED => {
                     cm.open(e.cdevice.which);
                 },
@@ -356,7 +364,7 @@ pub fn main() !void {
         }
 
         sys.preRender();
-        cd.flush();
+        cd.flush(false);
         sys.postRender();
     }
 }
