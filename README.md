@@ -346,14 +346,14 @@ Controls:
 
 ### Settings
 
-    master drive:   00
-    accent diff:    00
-    duck time:      40
-    delay time:     40
-    delay feedback: 80
-    delay duck:     80
-    swing:          00
-    drum kit:       R7
+    drive:      00
+    accent:     00
+    duck time:  40
+    delay time: 40
+    delay fb:   80
+    delay duck: 80
+    swing:      00
+    drum kit:   R7
 
     theme: forest
     font: mcr
@@ -361,13 +361,13 @@ Controls:
 
 These musical settings are included in snapshots:
 
-* master drive: drive amount on the master output
-* accent diff: volume of non-accented drum triggers
+* drive: drive amount on the master output
+* accent: higher values lower volume of non-accented drum notes
 * duck time: The decay time of the bass drum ducking envelope (unspecified
   unit)
 * delay time: delay line time specified in 16ths of a step's length given
   the current tempo. For example, 30 is three steps.
-* delay feedback: the delay feedback amount
+* delay fb: the delay feedback amount
 * delay duck: bass drum ducking amount for the delay return
 * swing: controls the time ratio between odd and even steps, allowing for
   16th note swing

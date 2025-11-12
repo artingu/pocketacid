@@ -168,7 +168,7 @@ fn bareReadParams(r: std.io.AnyReader, params: *Params) !void {
     try readBassPatch(r, &params.bass2);
 
     // Drums (33)
-    params.drums.set(.non_accent_level, try r.readInt(u8, .little));
+    params.drums.set(.accent, try r.readInt(u8, .little));
     var kitnamebuf: [2]u8 = undefined;
     try r.readNoEof(&kitnamebuf);
     const kit = std.meta.stringToEnum(Kit.Id, &kitnamebuf) orelse return error.DrumKitBadId;
@@ -420,7 +420,7 @@ fn writeParams(w: std.io.AnyWriter, params: *const Params) !void {
     try writeBassParams(w, &params.bass2);
 
     // Drums
-    try w.writeInt(u8, params.drums.get(.non_accent_level), .little);
+    try w.writeInt(u8, params.drums.get(.accent), .little);
     try w.writeAll(@tagName(params.drums.get(.kit)));
     try w.writeInt(u8, params.drums.get(.duck_time), .little);
 

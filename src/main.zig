@@ -120,14 +120,14 @@ pub fn main() !void {
     Sys.sound_engine.init(&params);
 
     var master_editor = MasterEditor{ .menu = &.{
-        .{ .u8 = .{ .label = "master drive:  ", .ptr = &params.engine.drive } },
-        .{ .u8 = .{ .label = "accent diff:   ", .ptr = &params.drums.non_accent_level } },
-        .{ .u8 = .{ .label = "duck time:     ", .ptr = &params.drums.duck_time } },
-        .{ .u8 = .{ .label = "delay time:    ", .ptr = &params.delay.time } },
-        .{ .u8 = .{ .label = "delay feedback:", .ptr = &params.delay.feedback } },
-        .{ .u8 = .{ .label = "delay duck:    ", .ptr = &params.delay.duck } },
-        .{ .u8 = .{ .label = "swing:         ", .ptr = &params.engine.swing } },
-        .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
+        .{ .u8 = .{ .label = "drive:     ", .ptr = &params.engine.drive } },
+        .{ .u8 = .{ .label = "accent:    ", .ptr = &params.drums.accent } },
+        .{ .u8 = .{ .label = "duck time: ", .ptr = &params.drums.duck_time } },
+        .{ .u8 = .{ .label = "delay time:", .ptr = &params.delay.time } },
+        .{ .u8 = .{ .label = "delay fb:  ", .ptr = &params.delay.feedback } },
+        .{ .u8 = .{ .label = "delay duck:", .ptr = &params.delay.duck } },
+        .{ .u8 = .{ .label = "swing:     ", .ptr = &params.engine.swing } },
+        .{ .Kit = .{ .label = "drum kit:  ", .ptr = &params.drums.kit } },
         .spacer,
         .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
         .{ .FontType = .{ .label = "font: ", .ptr = &config.font } },
