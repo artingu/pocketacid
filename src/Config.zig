@@ -31,6 +31,7 @@ pub fn load(self: *@This(), dir: std.fs.Dir) !void {
     const file = dir.openFile(configname, .{ .mode = .read_only }) catch |err| {
         if (err == error.FileNotFound) return else return err;
     };
+    defer file.close();
 
     var tokenbuf: [64]u8 = undefined;
     var tokenizer = Tokenizer{
@@ -46,6 +47,7 @@ pub fn load(self: *@This(), dir: std.fs.Dir) !void {
 pub fn save(self: *const @This(), dir: std.fs.Dir) !void {
     const file = try dir.createFile(configname ++ ".tmp", .{});
     const writer = file.writer().any();
+    defer file.close();
 
     try Parser.serialize(self.*, writer);
     try writer.writeAll("\n");

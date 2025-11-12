@@ -148,7 +148,10 @@ pub fn main() !void {
         const file = savedir.openFile(savename, .{ .mode = .read_only }) catch |err| {
             if (err == error.FileNotFound) break :loadblock else return err;
         };
+        defer file.close();
+
         var br = std.io.bufferedReader(file.reader());
+
         try save.load(
             br.reader().any(),
             &params,
@@ -167,21 +170,24 @@ pub fn main() !void {
 
     defer {
         saveblock: {
-            const f = savedir.createFile(savename ++ ".tmp", .{}) catch break :saveblock;
-            const writer = f.writer().any();
+            {
+                const f = savedir.createFile(savename ++ ".tmp", .{}) catch break :saveblock;
+                const writer = f.writer().any();
+                defer f.close();
 
-            save.save(
-                writer,
-                &params,
-                &song.bass1_arrange,
-                &song.bass2_arrange,
-                &song.drum_arrange,
-                &song.bass_patterns,
-                &song.drum_patterns,
-                &arranger,
-                &mixer_editor,
-                &song.snapshots,
-            ) catch break :saveblock;
+                save.save(
+                    writer,
+                    &params,
+                    &song.bass1_arrange,
+                    &song.bass2_arrange,
+                    &song.drum_arrange,
+                    &song.bass_patterns,
+                    &song.drum_patterns,
+                    &arranger,
+                    &mixer_editor,
+                    &song.snapshots,
+                ) catch break :saveblock;
+            }
             savedir.rename(savename ++ ".tmp", savename) catch {};
         }
     }
