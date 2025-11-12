@@ -19,11 +19,13 @@ const std = @import("std");
 const Parser = @import("Parser.zig");
 const Tokenizer = @import("Tokenizer.zig");
 const Theme = @import("Theme.zig");
+const FontType = @import("CharDisplay.zig").FontType;
 
 const configname = "settings.cfg";
 
 theme: Theme.Id = .term,
 swapbuttons: bool = false,
+font: FontType = .mcr,
 
 pub fn load(self: *@This(), dir: std.fs.Dir) !void {
     const file = dir.openFile(configname, .{ .mode = .read_only }) catch |err| {

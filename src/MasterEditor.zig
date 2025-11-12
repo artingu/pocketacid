@@ -21,6 +21,7 @@ const TextMatrix = @import("TextMatrix.zig");
 const InputState = @import("ButtonHandler.zig").States;
 const StereoFeedbackDelay = @import("StereoFeedbackDelay.zig");
 const Attrib = @import("CharDisplay.zig").Attrib;
+const FontType = @import("CharDisplay.zig").FontType;
 const Kit = @import("Kit.zig");
 const Theme = @import("Theme.zig");
 
@@ -29,6 +30,7 @@ pub const Entry = union(enum) {
     bool: BoolEntry,
     Kit: EnumEntry(Kit.Id),
     Theme: EnumEntry(Theme.Id),
+    FontType: EnumEntry(FontType),
     spacer,
 
     fn up(self: Entry) void {

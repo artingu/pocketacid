@@ -130,6 +130,7 @@ pub fn main() !void {
         .{ .Kit = .{ .label = "drum kit:      ", .ptr = &params.drums.kit } },
         .spacer,
         .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
+        .{ .FontType = .{ .label = "font: ", .ptr = &config.font } },
         .{ .bool = .{ .label = "swap buttons:", .ptr = &config.swapbuttons, .t = "yes", .f = "no" } },
     } };
 
@@ -187,13 +188,14 @@ pub fn main() !void {
 
     try sys.startAudio();
 
-    const cd = CharDisplay{
+    var cd = CharDisplay{
         .w = w,
         .h = h,
         .cells = &cells,
         .last_rendered = &last_rendered,
         .out = sys.r,
         .font = sys.font,
+        .fonttype = &config.font,
     };
 
     cm.openAll();

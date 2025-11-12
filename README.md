@@ -356,6 +356,7 @@ Controls:
     drum kit:       R7
 
     theme: forest
+    font: mcr
     swap buttons: no
 
 These musical settings are included in snapshots:
@@ -375,6 +376,7 @@ These musical settings are included in snapshots:
 These settings concern the whole program and are not included in snapshots:
 
 * theme: the color theme to use for the user interface
+* font: font type to use for drawing the screen
 * swap buttons: swap A with B and X with Y
 
 Controls:
@@ -403,6 +405,13 @@ Controls:
 If a savedir is not supplied, a default location appropriate for the OS
 will be used (via [`SDL_GetPrefPath`](https://wiki.libsdl.org/SDL2/SDL_GetPrefPath)).
 This is where the configuration and workspace will be saved.
+
+## Acknowledgement
+
+This project uses fixations of some of the [UNSCII fonts](http://viznut.fi/unscii/)
+by Viznut, which are distributed as being in the public domain. It also uses `stb_image.h`
+from [stb](https://github.com/nothings/stb), which is distributed as being in the Public
+Domain as defined by [unlicense.org](https://unlicense.org/).
 
 ## Copyright and license
 
