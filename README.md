@@ -408,10 +408,17 @@ This is where the configuration and workspace will be saved.
 
 ## Acknowledgement
 
-This project uses fixations of some of the [UNSCII fonts](http://viznut.fi/unscii/)
-by Viznut, which are distributed as being in the public domain. It also uses `stb_image.h`
-from [stb](https://github.com/nothings/stb), which is distributed as being in the Public
-Domain as defined by [unlicense.org](https://unlicense.org/).
+This project uses resources from multiple authors:
+
+* Some of the [UNSCII fonts](http://viznut.fi/unscii/) by Viznut, which are
+  distributed as being in the public domain.
+* `stb_image.h` from [stb](https://github.com/nothings/stb), which
+  is distributed as being in the Public Domain as defined by
+  [unlicense.org](https://unlicense.org/).
+* [SDL2](https://www.libsdl.org/), which is included under the zlib license.
+  See README-SDL.txt for more information.
+* The [Zig](https://ziglang.org/) standard library. The Zig license (MIT) is
+  retrieved upon building and is included in the release archives.
 
 ## Copyright and license
 

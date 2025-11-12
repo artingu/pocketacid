@@ -34,10 +34,14 @@ mkdir -p release/$NAME-$VERSION
 prereqs/zig/zig build -Dcpu=core2 -Doptimize=ReleaseFast -Dtarget=x86_64-windows --verbose
 cp zig-out/bin/$NAME.exe release/$NAME-$VERSION/
 cp prereqs/SDL2/lib/x64/SDL2.dll release/$NAME-$VERSION/
-cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/
+
+mkdir release/$NAME-$VERSION/licenses
+cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/licenses/
+cp prereqs/zig/LICENSE release/$NAME-$VERSION/licenses/zig.license.txt
+cp COPYING release/$NAME-$VERSION/licenses/corrode.license.txt
+
 cp README.md release/$NAME-$VERSION/README.txt
-cp COPYING release/$NAME-$VERSION/COPYING.txt
-zip -r release/$NAME-${VERSION}.win64.zip release/$NAME-$VERSION
+(cd release && zip -r $NAME-$VERSION.win64.zip "$NAME-$VERSION")
 rm -rf release/$NAME-$VERSION
 
 (
@@ -54,8 +58,9 @@ rm -rf release/$NAME-$VERSION
 	cp zig-out/bin/$NAME release/portmaster/$NAME/$NAME.aarch64
 	cp README.md release/portmaster/$NAME/
 	mkdir release/portmaster/$NAME/licenses/
+	cp prereqs/zig/LICENSE release/portmaster/$NAME/licenses/zig.license.txt
 	cp README-SDL.txt release/portmaster/$NAME/licenses/
-	cp COPYING release/portmaster/$NAME/licenses/corrode.txt
+	cp COPYING release/portmaster/$NAME/licenses/corrode.license.txt
 	cp README.md release/portmaster/$NAME/
 	(cd release/portmaster && zip -r ../$NAME-$VERSION.portmaster.zip .)
 	rm -rf release/portmaster
