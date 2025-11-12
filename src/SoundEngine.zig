@@ -171,6 +171,12 @@ fn start(self: *@This(), row: u8, running: bool) void {
         self.ds.stop();
         self.snapshot_row = null;
     } else {
+        emptyblk: {
+            if (@atomicLoad(u8, &song.bass1_arrange[row], .seq_cst) != 0xff) break :emptyblk;
+            if (@atomicLoad(u8, &song.bass2_arrange[row], .seq_cst) != 0xff) break :emptyblk;
+            if (@atomicLoad(u8, &song.drum_arrange[row], .seq_cst) != 0xff) break :emptyblk;
+            return;
+        }
         @atomicStore(bool, &self.running, true, .seq_cst);
         self.phase = 0;
         self.prevphase = 0.999;
