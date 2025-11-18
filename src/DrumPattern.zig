@@ -115,7 +115,7 @@ pub const DrumType = enum {
         };
     }
 
-    pub usingnamespace NextPrevEnum(@This());
+    pub usingnamespace NextPrevEnum(@This(), false);
 };
 
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,

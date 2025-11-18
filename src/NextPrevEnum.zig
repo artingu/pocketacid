@@ -17,14 +17,15 @@
 
 const std = @import("std");
 
-pub fn NextPrevEnum(comptime E: type) type {
+pub fn NextPrevEnum(comptime E: type, comptime wrap: bool) type {
     return struct {
         pub fn prev(self: *E) void {
             switch (self.*) {
                 inline else => |v| {
                     const values = comptime std.enums.values(E);
                     const idx = comptime std.mem.indexOfScalar(E, values, v) orelse @compileError("bad enum value");
-                    const new_idx: usize = if (idx == 0) 0 else idx - 1;
+                    const minidx: usize = if (wrap) values.len - 1 else 0;
+                    const new_idx: usize = if (idx == 0) minidx else idx - 1;
 
                     self.* = values[new_idx];
                 },
@@ -36,7 +37,8 @@ pub fn NextPrevEnum(comptime E: type) type {
                 inline else => |v| {
                     const values = comptime std.enums.values(E);
                     const idx = comptime std.mem.indexOfScalar(E, values, v) orelse @compileError("bad enum value");
-                    const new_idx: usize = if (idx == values.len - 1) 0 else idx + 1;
+                    const minidx: usize = if (wrap) 0 else idx;
+                    const new_idx: usize = if (idx == values.len - 1) minidx else idx + 1;
 
                     self.* = values[new_idx];
                 },

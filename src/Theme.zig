@@ -49,7 +49,7 @@ pub const Id = enum {
         };
     }
 
-    pub usingnamespace NextPrevEnum(Id);
+    pub usingnamespace NextPrevEnum(Id, false);
 };
 
 const term = theme(.{
