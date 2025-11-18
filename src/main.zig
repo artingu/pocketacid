@@ -208,6 +208,7 @@ pub fn main() !void {
     defer cm.closeAll();
 
     mainloop: while (true) {
+        var redraw = false;
         const colors = config.theme.resolve();
         const current_t = sdl.getPerformanceCounter();
         const dt: f32 = @floatCast(@as(f64, @floatFromInt(current_t -% last_t)) / perf_freq);
@@ -221,11 +222,7 @@ pub fn main() !void {
             switch (e.type) {
                 sdl.QUIT => break :mainloop,
                 sdl.WINDOWEVENT => switch (e.window.event) {
-                    sdl.WINDOWEVENT_SIZE_CHANGED => {
-                        sys.preRender();
-                        cd.flush(true);
-                        sys.postRender();
-                    },
+                    sdl.WINDOWEVENT_SIZE_CHANGED => redraw = true,
                     else => {},
                 },
                 sdl.CONTROLLERDEVICEADDED => {
@@ -364,7 +361,7 @@ pub fn main() !void {
         }
 
         sys.preRender();
-        cd.flush(false);
+        cd.flush(redraw);
         sys.postRender();
     }
 }
