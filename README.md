@@ -1,5 +1,7 @@
 # Pocket Acid
 
+![Screenshot of Pocket Acid](.readme-assets/pocketacid.png)
+
 Pocket Acid is a self-contained music studio designed for use with game
 controllers and cheap, handheld Linux-based game consoles like the [R36S](https://handhelds.wiki/R36S_Handheld_Wiki).
 It's designed for live use, with quick access to synthesizer parameters via
