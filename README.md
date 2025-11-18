@@ -1,12 +1,31 @@
 # Pocket Acid
 
-Pocket Acid is a self-contained music studio designed for use with game controllers
-and cheap, handheld Linux-based game consoles like the [R36S](https://handhelds.wiki/R36S_Handheld_Wiki).
+Pocket Acid is a self-contained music studio designed for use with game
+controllers and cheap, handheld Linux-based game consoles like the [R36S](https://handhelds.wiki/R36S_Handheld_Wiki).
 It's designed for live use, with quick access to synthesizer parameters via
 joysticks, muting using button combinations and pattern queuing.
 
 The patterns, arrangement and parameters and so on are all contained in a
 single file, which is automatically saved upon exit.
+
+# Installation
+
+To install on an ArkOS device, extract the `.portmaster.zip` archive to the
+ports directory in the EASYROMS partition. The ports directory should now
+contain the file `Pocket Acid.sh` and the directory `pocketacid`. Pocket Acid
+will be available under the ports entry in the main menu on the next boot.
+
+To install on Windows, simply extract the `.win64.zip` archive to the desired
+location.
+
+To build on Linux, build the port using zig 0.14.1 compiler. After you run the
+`release.sh` script, that version of Zig will be available in prereqs/zig.
+
+Then you can simply run:
+
+    prereqs/zig/zig build -Doptimize=ReleaseFast
+
+after which the executable will be available at `zig-out/bin/pocketacid`.
 
 # Bassline synthesizer
 
@@ -116,8 +135,8 @@ Others are specific to the different sections of the programs described below
 
 ## Sections
 
-Pocket Acid is divided into several sections which you can normally move between
-using the select and R1 buttons:
+Pocket Acid is divided into several sections which you can normally move
+between using the select and R1 buttons:
 
 * **Arranger**: used for arranging patterns into loops or songs
 * **Bassline pattern sequencer**: used to compose bassline patterns
