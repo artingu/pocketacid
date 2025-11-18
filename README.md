@@ -1,6 +1,6 @@
-# corrode
+# Pocket Acid
 
-corrode is a self-contained music studio designed for use with game controllers
+Pocket Acid is a self-contained music studio designed for use with game controllers
 and cheap, handheld Linux-based game consoles like the [R36S](https://handhelds.wiki/R36S_Handheld_Wiki).
 It's designed for live use, with quick access to synthesizer parameters via
 joysticks, muting using button combinations and pattern queuing.
@@ -53,7 +53,7 @@ used.
 
 ## Controls
 
-corrode assumes a controller layout similar to that of a typical
+Pocket Acid assumes a controller layout similar to that of a typical
 Xbox/Playstation controller, with two sticks and four shoulder
 buttons. The buttons are named as follows:
 
@@ -116,7 +116,7 @@ Others are specific to the different sections of the programs described below
 
 ## Sections
 
-corrode is divided into several sections which you can normally move between
+Pocket Acid is divided into several sections which you can normally move between
 using the select and R1 buttons:
 
 * **Arranger**: used for arranging patterns into loops or songs
@@ -394,7 +394,7 @@ Controls:
 
 ## Command line arguments
 
-    Usage: corrode [OPTIONS] [savedir]
+    Usage: pocketacid [OPTIONS] [savedir]
 
     Options:
     --help
@@ -422,7 +422,7 @@ This project uses resources from multiple authors:
 
 ## Copyright and license
 
-    corrode
+    Pocket Acid
     Copyright (C)  2025 Philip Linde
     
     This program is free software: you can redistribute it and/or modify

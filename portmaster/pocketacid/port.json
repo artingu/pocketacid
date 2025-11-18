@@ -1,13 +1,13 @@
 {
   "version": 4,
-  "name": "corrode.zip",
+  "name": "pocketacid.zip",
   "items": [
-    "corrode.sh",
-    "corrode"
+    "Pocket Acid.sh",
+    "pocketacid"
   ],
   "items_opt": [],
   "attr": {
-    "title": "corrode",
+    "title": "Pocket Acid",
     "porter": [
       "Text Garden"
     ],

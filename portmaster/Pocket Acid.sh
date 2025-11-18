@@ -18,7 +18,7 @@ source $controlfolder/control.txt
 
 get_controls
 
-GAMEDIR=/$directory/ports/corrode/
+GAMEDIR=/$directory/ports/pocketacid/
 CONFDIR="$GAMEDIR/conf/"
 
 mkdir -p "$GAMEDIR/conf"
@@ -30,7 +30,7 @@ cd $GAMEDIR
 export XDG_DATA_HOME="$CONFDIR"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$GPTOKEYB "$corrode.${DEVICE_ARCH}" &
-pm_platform_helper "$GAMEDIR/corrode.${DEVICE_ARCH}"
-./corrode.${DEVICE_ARCH} --nokeyboard ./conf
+$GPTOKEYB "pocketacid.${DEVICE_ARCH}" &
+pm_platform_helper "$GAMEDIR/pocketacid.${DEVICE_ARCH}"
+./pocketacid.${DEVICE_ARCH} --nokeyboard ./conf
 pm_finish

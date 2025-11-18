@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <gameList>
   <game>
-    <path>./corrode.sh</path>
-    <name>corrode</name>
+    <path>./Pocket Acid.sh</path>
+    <name>Pocket Acid</name>
 	<desc>Self-contained music studio.</desc>
     <releasedate>20230819T000000</releasedate>
     <developer>Text Garden</developer>
     <publisher>Text Garden</publisher>
     <genre>other</genre>
-    <image>./corrode/cover.png</image>
+    <image>./pocketacid/cover.png</image>
   </game>
 </gameList>

@@ -2,7 +2,7 @@
 
 set -e
 
-NAME=corrode
+NAME=pocketacid
 VERSION="$(git describe --always)"
 ZIG_VERSION=0.14.1
 SDL2_WINDOWS_VERSION=2.32.6
@@ -38,7 +38,7 @@ cp prereqs/SDL2/lib/x64/SDL2.dll release/$NAME-$VERSION/
 mkdir release/$NAME-$VERSION/licenses
 cp prereqs/SDL2/README-SDL.txt release/$NAME-$VERSION/licenses/
 cp prereqs/zig/LICENSE release/$NAME-$VERSION/licenses/zig.license.txt
-cp COPYING release/$NAME-$VERSION/licenses/corrode.license.txt
+cp COPYING release/$NAME-$VERSION/licenses/pocketacid.license.txt
 
 cp README.md release/$NAME-$VERSION/README.txt
 (cd release && zip -r $NAME-$VERSION.win64.zip "$NAME-$VERSION")
@@ -60,7 +60,7 @@ rm -rf release/$NAME-$VERSION
 	mkdir release/portmaster/$NAME/licenses/
 	cp prereqs/zig/LICENSE release/portmaster/$NAME/licenses/zig.license.txt
 	cp README-SDL.txt release/portmaster/$NAME/licenses/
-	cp COPYING release/portmaster/$NAME/licenses/corrode.license.txt
+	cp COPYING release/portmaster/$NAME/licenses/$NAME.license.txt
 	cp README.md release/portmaster/$NAME/
 	(cd release/portmaster && zip -r ../$NAME-$VERSION.portmaster.zip .)
 	rm -rf release/portmaster
