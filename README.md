@@ -14,6 +14,9 @@ single file, which is automatically saved upon exit.
 
 # Installation
 
+If you are using Windows or ArkOS (or any 64-bit platform using PortMaster),
+[get the latest release build here.](https://github.com/boomlinde/pocketacid/releases/latest)
+
 To install on an ArkOS device, extract the `.portmaster.zip` archive to the
 ports directory in the EASYROMS partition. The ports directory should now
 contain the file `Pocket Acid.sh` and the directory `pocketacid`. Pocket Acid
