@@ -84,7 +84,7 @@ pub inline fn setPattern(self: *@This(), pat: u8) void {
     self.idx = @min(self.idx, self.selectedPattern().length() - 1);
 }
 
-pub fn handle(self: *@This(), input: InputState) void {
+pub fn handle(self: *@This(), input: InputState, autoadvance: bool) void {
     const step = self.selectedStep();
 
     if (input.hold.any()) self.blink = 0;
@@ -148,7 +148,7 @@ pub fn handle(self: *@This(), input: InputState) void {
                 step.assume(sc);
             }
             self.changedpitch = false;
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         }
     }
 
@@ -158,25 +158,25 @@ pub fn handle(self: *@This(), input: InputState) void {
             var c = step.copy();
             c.octup = !c.octup;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .octdown => {
             var c = step.copy();
             c.octdown = !c.octdown;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .slide => {
             var c = step.copy();
             c.slide = !c.slide;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .accent => {
             var c = step.copy();
             c.accent = !c.accent;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
     };
 
@@ -185,31 +185,31 @@ pub fn handle(self: *@This(), input: InputState) void {
             var c = step.copy();
             c.pitch = BassPattern.off;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .octup => {
             var c = step.copy();
             c.octup = false;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .octdown => {
             var c = step.copy();
             c.octdown = false;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .slide => {
             var c = step.copy();
             c.slide = false;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
         .accent => {
             var c = step.copy();
             c.accent = false;
             step.assume(c);
-            self.nextIdx();
+            if (autoadvance) self.nextIdx();
         },
     };
 }

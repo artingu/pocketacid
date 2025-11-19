@@ -29,7 +29,7 @@ idx: u8 = 0,
 blink: f32 = 0,
 drumtype: DrumPattern.DrumType = .bd,
 
-pub fn handle(self: *@This(), input: InputState) void {
+pub fn handle(self: *@This(), input: InputState, autoadvance: bool) void {
     if (input.hold.any()) self.blink = 0;
 
     if (input.hold.y) {
@@ -44,11 +44,11 @@ pub fn handle(self: *@This(), input: InputState) void {
     if (input.repeat.right) self.nextIdx();
     if (input.repeat.a) {
         self.selectedStep().toggle(self.drumtype);
-        self.nextIdx();
+        if (autoadvance) self.nextIdx();
     }
     if (input.repeat.b) {
         self.selectedStep().set(self.drumtype, false);
-        self.nextIdx();
+        if (autoadvance) self.nextIdx();
     }
 }
 

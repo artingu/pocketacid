@@ -132,6 +132,7 @@ pub fn main() !void {
         .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
         .{ .FontType = .{ .label = "font: ", .ptr = &config.font } },
         .{ .bool = .{ .label = "swap buttons:", .ptr = &config.swapbuttons, .t = "yes", .f = "no" } },
+        .{ .bool = .{ .label = "auto-advance:", .ptr = &config.autoadvance, .t = "yes", .f = "no" } },
     } };
 
     var arranger = Arranger{
@@ -331,12 +332,12 @@ pub fn main() !void {
                     switch (arranger.column) {
                         0, 1 => {
                             bass_editor.setPattern(p);
-                            if (!globalkey) bass_editor.handle(trig);
+                            if (!globalkey) bass_editor.handle(trig, config.autoadvance);
                             bass_editor.display(&tm, 10, 1, dt, true, pi[arranger.column], colors);
                         },
                         2 => {
                             drum_editor.setPattern(p);
-                            if (!globalkey) drum_editor.handle(trig);
+                            if (!globalkey) drum_editor.handle(trig, config.autoadvance);
                             drum_editor.display(
                                 &tm,
                                 10,
