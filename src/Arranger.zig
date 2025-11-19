@@ -40,6 +40,8 @@ qblink: f32 = 0,
 changed: bool = false,
 yank: u8 = 0,
 
+pub const Request = enum { clone };
+
 const UploadAnim = struct {
     row: u8,
 
@@ -98,7 +100,7 @@ pub fn prevStart(self: *Arranger) void {
     }
 }
 
-pub fn handle(self: *Arranger, input: InputState) void {
+pub fn handle(self: *Arranger, input: InputState) ?Request {
     const over_addr = &self.columns[self.column].*[self.row];
     const curval = @atomicLoad(u8, over_addr, .seq_cst);
     if (input.hold.any()) self.blink = 0;
@@ -113,7 +115,7 @@ pub fn handle(self: *Arranger, input: InputState) void {
         if (input.press.b) self.snapshots[self.row].delete();
 
         self.changed = false;
-        return;
+        return null;
     }
 
     if (input.hold.b) {
@@ -121,9 +123,10 @@ pub fn handle(self: *Arranger, input: InputState) void {
         if (input.repeat.down) self.row +%= 16;
         if (input.repeat.left) self.prevStart();
         if (input.repeat.right) self.nextStart();
+        if (input.press.select) return .clone;
 
         self.changed = false;
-        return;
+        return null;
     }
 
     if (input.press.a) {
@@ -181,6 +184,8 @@ pub fn handle(self: *Arranger, input: InputState) void {
 
     if (input.combo("left")) self.prevColumn();
     if (input.combo("right")) self.nextColumn();
+
+    return null;
 }
 
 inline fn nextRow(self: *Arranger) void {

@@ -298,7 +298,11 @@ pub fn main() !void {
             }
             if (arrange) {
                 if (!globalkey and trig.comboPress("x")) Sys.sound_engine.enqueue(arranger.row);
-                if (!globalkey) arranger.handle(trig);
+                if (!globalkey) {
+                    if (arranger.handle(trig)) |request| switch (request) {
+                        .clone => Clipboard.clone(&arranger),
+                    };
+                }
                 if (arranger.selectedPattern()) |p| {
                     switch (arranger.column) {
                         0, 1 => {

@@ -121,6 +121,14 @@ pub const DrumType = enum {
 steps: [maxlen]Step = [1]Step{.{}} ** maxlen,
 len: u8 = maxlen,
 
+pub fn empty(self: *const @This()) bool {
+    const default = Step{};
+    for (&self.steps) |*step| {
+        if (step.copy() != default) return false;
+    }
+    return true;
+}
+
 pub fn copy(self: *const @This()) @This() {
     const len = @atomicLoad(u8, &self.len, .seq_cst);
     var steps: [maxlen]Step = undefined;

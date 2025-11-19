@@ -26,3 +26,39 @@ pub var snapshots: [256]Snapshot = [1]Snapshot{.{}} ** 256;
 pub var bass1_arrange: [256]u8 = [1]u8{0xff} ** 256;
 pub var bass2_arrange: [256]u8 = [1]u8{0xff} ** 256;
 pub var drum_arrange: [256]u8 = [1]u8{0xff} ** 256;
+
+pub fn findEmptyUnusedBassPattern() ?u8 {
+    // Index all used patterns
+    var used: [255]bool = [1]bool{false} ** 255;
+    for (&bass1_arrange) |*idx| {
+        const pat = @atomicLoad(u8, idx, .seq_cst);
+        if (pat != 0xff) used[pat] = true;
+    }
+    for (&bass2_arrange) |*idx| {
+        const pat = @atomicLoad(u8, idx, .seq_cst);
+        if (pat != 0xff) used[pat] = true;
+    }
+
+    for (bass_patterns[0..255], 0..) |*pat, i| {
+        if (used[i]) continue;
+        if (pat.empty()) return @intCast(i);
+    }
+
+    return null;
+}
+
+pub fn findEmptyUnusedDrumPattern() ?u8 {
+    // Index all used patterns
+    var used: [255]bool = [1]bool{false} ** 255;
+    for (&drum_arrange) |*idx| {
+        const pat = @atomicLoad(u8, idx, .seq_cst);
+        if (pat != 0xff) used[pat] = true;
+    }
+
+    for (drum_patterns[0..255], 0..) |*pat, i| {
+        if (used[i]) continue;
+        if (pat.empty()) return @intCast(i);
+    }
+
+    return null;
+}

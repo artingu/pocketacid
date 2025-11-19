@@ -207,6 +207,7 @@ Controls:
 | B+down      | Navigate to the 16th next line                      |
 | B+left      | Navigate to the previous section                    |
 | B+down      | Navigate to the next section                        |
+| B+select    | Clone pattern to unused, empty slot                 |
 | A           | Toggle pattern on step                              |
 | A+left      | Decrement pattern number                            |
 | A+right     | Increment pattern number                            |
@@ -217,7 +218,7 @@ Controls:
 | Y+B         | Delete snapshot at current row                      |
 | X           | (While playing) Queue the current row               |
 | X           | Start playback at current row but don't change BPM  |
-j R1          | Switch to pattern sequencer                         |
+| R1          | Switch to pattern sequencer                         |
 
 ### Bassline pattern sequencer
 
