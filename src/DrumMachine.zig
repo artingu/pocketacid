@@ -52,7 +52,7 @@ pub const Mutes = packed struct(u8) {
     }
 };
 pub const Params = struct {
-    accent: u8 = 0xc0,
+    accent: u8 = 0x40,
     kit: Kit.Id = .R6,
     duck_time: u8 = 0x20,
     pub usingnamespace Accessor(@This());
