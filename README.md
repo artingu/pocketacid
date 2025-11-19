@@ -10,6 +10,8 @@ joysticks, muting using button combinations and pattern queuing.
 The patterns, arrangement and parameters and so on are all contained in a
 single file, which is automatically saved upon exit.
 
+[Watch a demo video on YouTube](https://www.youtube.com/watch?v=6xw3qoWYFCo)
+
 # Installation
 
 To install on an ArkOS device, extract the `.portmaster.zip` archive to the
