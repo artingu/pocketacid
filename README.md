@@ -83,8 +83,8 @@ Pocket Acid assumes a controller layout similar to that of a typical
 Xbox/Playstation controller, with two sticks and four shoulder
 buttons. The buttons are named as follows:
 
-        L2                      L2
-        L1                      L1
+        L2                      R2
+        L1                      R1
 
         up                       Y
     left  right  select start  X   B
