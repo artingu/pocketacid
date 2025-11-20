@@ -45,6 +45,8 @@ const h = 22;
 const savename = "state.sav";
 
 pub fn main() !void {
+    var known_fullscreen = false;
+
     const stderr = std.io.getStdErr().writer().any();
 
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -119,7 +121,7 @@ pub fn main() !void {
 
     Sys.sound_engine.init(&params);
 
-    var master_editor = MasterEditor{ .menu = &.{
+    const left_menu = [_]MasterEditor.Entry{
         .{ .u8 = .{ .label = "drive:     ", .ptr = &params.engine.drive } },
         .{ .u8 = .{ .label = "accent:    ", .ptr = &params.drums.accent } },
         .{ .u8 = .{ .label = "duck time: ", .ptr = &params.drums.duck_time } },
@@ -129,11 +131,27 @@ pub fn main() !void {
         .{ .u8 = .{ .label = "swing:     ", .ptr = &params.engine.swing } },
         .{ .Kit = .{ .label = "drum kit:  ", .ptr = &params.drums.kit } },
         .spacer,
-        .{ .Theme = .{ .label = "theme: ", .ptr = &config.theme } },
-        .{ .FontType = .{ .label = "font: ", .ptr = &config.font } },
-        .{ .bool = .{ .label = "swap buttons:", .ptr = &config.swapbuttons, .t = "yes", .f = "no" } },
-        .{ .bool = .{ .label = "auto-advance:", .ptr = &config.autoadvance, .t = "yes", .f = "no" } },
-    } };
+        .{ .Theme = .{ .label = "theme:", .ptr = &config.theme } },
+        .{ .FontType = .{ .label = "font:", .ptr = &config.font } },
+        .{ .bool = .{ .label = "fullscreen:", .ptr = &config.fullscreen, .t = "yes", .f = "no" } },
+    };
+    var master_editor = MasterEditor{
+        .left = &left_menu,
+        .right = &.{
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .spacer,
+            .{ .bool = .{ .label = "swap btn:", .ptr = &config.swapbuttons, .t = "yes", .f = "no" } },
+            .{ .bool = .{ .label = "auto-adv:", .ptr = &config.autoadvance, .t = "yes", .f = "no" } },
+        },
+        .current = &left_menu,
+    };
 
     var arranger = Arranger{
         .params = &params,
@@ -209,6 +227,13 @@ pub fn main() !void {
     defer cm.closeAll();
 
     mainloop: while (true) {
+        if (config.fullscreen != known_fullscreen) {
+            known_fullscreen = config.fullscreen;
+            _ = sdl.setWindowFullscreen(
+                sys.w,
+                if (config.fullscreen) sdl.WINDOW_FULLSCREEN_DESKTOP else 0,
+            );
+        }
         var redraw = false;
         const colors = config.theme.resolve();
         const current_t = sdl.getPerformanceCounter();

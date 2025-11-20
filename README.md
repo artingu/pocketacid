@@ -382,9 +382,9 @@ Controls:
     swing:      00
     drum kit:   R7
 
-    theme: forest
-    font: mcr
-    swap buttons: no
+    theme: forest  swap btn: no
+    font: mcr      auto-adv: yes
+    fullscreen: no
 
 These musical settings are included in snapshots:
 
@@ -403,8 +403,10 @@ These musical settings are included in snapshots:
 These settings concern the whole program and are not included in snapshots:
 
 * theme: the color theme to use for the user interface
+* swap btn: swap A with B and X with Y
 * font: font type to use for drawing the screen
-* swap buttons: swap A with B and X with Y
+* auto-adv: auto-advance cursor in pattern sequencer or not
+* fullscreen: toggle fullscreen
 
 Controls:
 
@@ -412,6 +414,8 @@ Controls:
 | ----------- | --------------------------------------------------- |
 | up          | Navigate to previous setting                        |
 | down        | Navigate to next setting                            |
+| left        | Select the left menu column                         |
+| right       | Select the right menu column                        |
 | A+up        | Increase current setting by 16 (for numbers)        |
 | A+down      | Decrease current setting by 16 (for numbers)        |
 | A+left      | Decrement current setting/previous value            |
