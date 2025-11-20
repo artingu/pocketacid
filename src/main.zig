@@ -193,7 +193,7 @@ pub fn main() !void {
         }
     }
 
-    try sys.startAudio();
+    try sys.startAudio(config.samples);
 
     var cd = CharDisplay{
         .w = w,

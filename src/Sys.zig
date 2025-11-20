@@ -121,13 +121,13 @@ pub fn init(w_width: c_int, w_height: c_int) !Self {
     };
 }
 
-pub fn startAudio(self: *Self) !void {
+pub fn startAudio(self: *Self, samples: u16) !void {
     const want = sdl.AudioSpec{
         .freq = 48000,
         .format = sdl.AUDIO_F32,
         .channels = 2,
         .callback = audiocb,
-        .samples = 1024,
+        .samples = samples,
         .silence = 0,
         .padding = 0,
         .size = 0,
