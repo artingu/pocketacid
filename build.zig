@@ -21,6 +21,7 @@ pub fn build(b: *std.Build) void {
     if (target.result.os.tag == .windows) {
         exe.addIncludePath(b.path("prereqs/SDL2/include"));
         exe.addLibraryPath(b.path("prereqs/SDL2/lib/x64"));
+        exe.subsystem = .Windows;
     }
     b.installArtifact(exe);
 
