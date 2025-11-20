@@ -208,6 +208,7 @@ Controls:
 | B+left      | Navigate to the previous section                    |
 | B+down      | Navigate to the next section                        |
 | B+select    | Clone pattern to unused, empty slot                 |
+| B+start     | Pick empty, unused pattern and initialize it        |
 | A           | Toggle pattern on step                              |
 | A+left      | Decrement pattern number                            |
 | A+right     | Increment pattern number                            |
@@ -219,6 +220,13 @@ Controls:
 | X           | (While playing) Queue the current row               |
 | X           | Start playback at current row but don't change BPM  |
 | R1          | Switch to pattern sequencer                         |
+
+For the B+select and B+start commands, it's important to know what
+Pocket Acid considers an empty, unused pattern. A pattern is considered
+unused if it doesn't currently appear in the arrangement. A pattern is
+considered empty if there are no notes or note attributes (like
+accent, slides, repeats...). That means a pattern that has a non-default
+length or a non-default base pitch can still be considered empty.
 
 ### Bassline pattern sequencer
 

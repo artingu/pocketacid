@@ -327,6 +327,7 @@ pub fn main() !void {
                 if (!globalkey) {
                     if (arranger.handle(trig)) |request| switch (request) {
                         .clone => Clipboard.clone(&arranger),
+                        .new => Clipboard.new(&arranger),
                     };
                 }
                 if (arranger.selectedPattern()) |p| {

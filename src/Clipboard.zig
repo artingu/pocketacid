@@ -29,6 +29,22 @@ const Buffer = union(enum) {
 
 buffer: Buffer = .none,
 
+pub fn new(arr: *const Arranger) void {
+    switch (arr.column) {
+        0, 1 => if (song.findEmptyUnusedBassPattern()) |dst_pat| {
+            const default = BassPattern{};
+            song.bass_patterns[dst_pat].assume(&default);
+            @atomicStore(u8, &arr.columns[arr.column][arr.row], dst_pat, .seq_cst);
+        },
+        2 => if (song.findEmptyUnusedDrumPattern()) |dst_pat| {
+            const default = DrumPattern{};
+            song.drum_patterns[dst_pat].assume(&default);
+            @atomicStore(u8, &arr.columns[arr.column][arr.row], dst_pat, .seq_cst);
+        },
+        else => unreachable,
+    }
+}
+
 pub fn clone(arr: *const Arranger) void {
     const orig_pat = @atomicLoad(u8, &arr.columns[arr.column][arr.row], .seq_cst);
 
