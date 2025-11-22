@@ -40,7 +40,7 @@ qblink: f32 = 0,
 changed: bool = false,
 yank: u8 = 0,
 
-pub const Request = enum { clone };
+pub const Request = enum { clone, new };
 
 const UploadAnim = struct {
     row: u8,
@@ -123,9 +123,15 @@ pub fn handle(self: *Arranger, input: InputState) ?Request {
         if (input.repeat.down) self.row +%= 16;
         if (input.repeat.left) self.prevStart();
         if (input.repeat.right) self.nextStart();
-        if (input.press.select) return .clone;
+        if (input.press.select) {
+            self.changed = true;
+            return .clone;
+        }
+        if (input.press.start) {
+            self.changed = true;
+            return .new;
+        }
 
-        self.changed = false;
         return null;
     }
 

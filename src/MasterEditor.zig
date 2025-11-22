@@ -116,7 +116,9 @@ pub const U8Entry = struct {
     }
 };
 
-menu: []const Entry,
+left: []const Entry,
+right: []const Entry,
+current: []const Entry,
 
 idx: u8 = 0,
 blink: f32 = 0,
@@ -132,16 +134,24 @@ pub fn display(
 ) void {
     const faded = c.faded(0.5);
     const colors = if (active) c else &faded;
-
     const on = @mod(self.blink * 4, 1) < 0.5 and active;
-    for (self.menu, 0..) |entry, i| {
-        const color = if (i == self.idx)
-            invertIf(colors.hilight, on)
-        else
-            colors.normal;
 
-        entry.display(tm, x, y + i, color);
+    var vx = x;
+
+    const menus = [_][]const Entry{ self.left, self.right };
+
+    for (menus) |menu| {
+        for (menu, 0..) |entry, i| {
+            const color = if (i == self.idx and menu.ptr == self.current.ptr)
+                invertIf(colors.hilight, on)
+            else
+                colors.normal;
+
+            entry.display(tm, vx, y + i, color);
+        }
+        vx += 15;
     }
+
     self.blink = @mod(self.blink + dt, 1);
 }
 
@@ -149,7 +159,7 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
     if (!active) return;
     if (input.hold.any()) self.blink = 0;
 
-    const entry = self.menu[self.idx];
+    const entry = self.current[self.idx];
     if (input.press.a or input.press.b) entry.press();
     if (input.hold.a or input.hold.b) {
         if (input.repeat.up) entry.up();
@@ -159,15 +169,28 @@ pub fn handle(self: *@This(), input: InputState, active: bool) void {
         return;
     }
 
+    if (input.press.left and self.left.len > self.idx and self.left[self.idx] != .spacer)
+        self.current = self.left;
+    if (input.press.right and self.right.len > self.idx and self.right[self.idx] != .spacer)
+        self.current = self.right;
+
     if (input.repeat.up) {
+        const prev_idx = self.idx;
         self.idx -|= 1;
-        while (self.menu[self.idx] == .spacer and self.idx != 0)
+        while (self.current[self.idx] == .spacer and self.idx != 0)
             self.idx -|= 1;
+
+        if (self.current[self.idx] == .spacer)
+            self.idx = prev_idx;
     }
     if (input.repeat.down) {
-        self.idx = @min(self.menu.len - 1, self.idx + 1);
-        while (self.menu[self.idx] == .spacer and self.idx != self.menu.len - 1)
-            self.idx = @min(self.menu.len - 1, self.idx + 1);
+        const prev_idx = self.idx;
+        self.idx = @min(self.current.len - 1, self.idx + 1);
+        while (self.current[self.idx] == .spacer and self.idx != self.current.len - 1)
+            self.idx = @min(self.current.len - 1, self.idx + 1);
+
+        if (self.current[self.idx] == .spacer)
+            self.idx = prev_idx;
     }
 }
 

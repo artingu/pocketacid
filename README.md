@@ -208,6 +208,7 @@ Controls:
 | B+left      | Navigate to the previous section                    |
 | B+down      | Navigate to the next section                        |
 | B+select    | Clone pattern to unused, empty slot                 |
+| B+start     | Pick empty, unused pattern and initialize it        |
 | A           | Toggle pattern on step                              |
 | A+left      | Decrement pattern number                            |
 | A+right     | Increment pattern number                            |
@@ -219,6 +220,13 @@ Controls:
 | X           | (While playing) Queue the current row               |
 | X           | Start playback at current row but don't change BPM  |
 | R1          | Switch to pattern sequencer                         |
+
+For the B+select and B+start commands, it's important to know what
+Pocket Acid considers an empty, unused pattern. A pattern is considered
+unused if it doesn't currently appear in the arrangement. A pattern is
+considered empty if there are no notes or note attributes (like
+accent, slides, repeats...). That means a pattern that has a non-default
+length or a non-default base pitch can still be considered empty.
 
 ### Bassline pattern sequencer
 
@@ -382,9 +390,9 @@ Controls:
     swing:      00
     drum kit:   R7
 
-    theme: forest
-    font: mcr
-    swap buttons: no
+    theme: forest  swap btn: no
+    font: mcr      auto-adv: yes
+    fullscreen: no
 
 These musical settings are included in snapshots:
 
@@ -403,8 +411,10 @@ These musical settings are included in snapshots:
 These settings concern the whole program and are not included in snapshots:
 
 * theme: the color theme to use for the user interface
+* swap btn: swap A with B and X with Y
 * font: font type to use for drawing the screen
-* swap buttons: swap A with B and X with Y
+* auto-adv: auto-advance cursor in pattern sequencer or not
+* fullscreen: toggle fullscreen
 
 Controls:
 
@@ -412,6 +422,8 @@ Controls:
 | ----------- | --------------------------------------------------- |
 | up          | Navigate to previous setting                        |
 | down        | Navigate to next setting                            |
+| left        | Select the left menu column                         |
+| right       | Select the right menu column                        |
 | A+up        | Increase current setting by 16 (for numbers)        |
 | A+down      | Decrease current setting by 16 (for numbers)        |
 | A+left      | Decrement current setting/previous value            |

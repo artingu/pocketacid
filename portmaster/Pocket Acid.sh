@@ -30,7 +30,9 @@ cd $GAMEDIR
 export XDG_DATA_HOME="$CONFDIR"
 export SDL_GAMECONTROLLERCONFIG="$sdl_controllerconfig"
 
-$GPTOKEYB "pocketacid.${DEVICE_ARCH}" &
-pm_platform_helper "$GAMEDIR/pocketacid.${DEVICE_ARCH}"
-./pocketacid.${DEVICE_ARCH} --nokeyboard ./conf
+
+
+$GPTOKEYB "pocketacid.aarch64" &
+pm_platform_helper "$GAMEDIR/pocketacid.aarch64"
+./pocketacid.aarch64 --nokeyboard ./conf
 pm_finish
